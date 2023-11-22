@@ -145,7 +145,7 @@ public static class WebActions
                     Debug.Log($"{pages[page]}: {webRequest.downloadHandler.text}");
                     string jsonArray = webRequest.downloadHandler.text;
 
-                    callback(jsonArray);
+                    callback?.Invoke(jsonArray);
                     break;
             }
         }
