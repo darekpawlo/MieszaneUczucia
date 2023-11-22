@@ -2,13 +2,13 @@ using SimpleJSON;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 using TMPro;
 using UnityEngine;
 
 public class Items : MonoBehaviour
 {
     Action<string> createItemsCallback;
-    Func<string> getItemsCallback;
 
     private void Start()
     {
@@ -27,37 +27,45 @@ public class Items : MonoBehaviour
 
     IEnumerator CreateItemRoutine(string jsonArrayString)
     {
-        JSONArray jsonArray = JSON.Parse(jsonArrayString) as JSONArray;
+        var itemIDs = JsonConvert.DeserializeObject<List<ItemIDs>>(jsonArrayString);
 
-        for (int i = 0; i < jsonArray.Count; i++)
+        for (int i = 0; i < itemIDs.Count; i++)
         {
             //Create local variables
             bool isDone = false;
-            string itemId = jsonArray[i].AsObject["itemID"];
-            JSONObject itemInfoJson = new JSONObject();
+            string itemId = itemIDs[i].itemID;
 
+            ItemData itemInfoJson = new ItemData();
             //Create a callback to get the information from WebActions
             Action<string> getItemInfoCallback = (itemInfo) =>
             {
                 isDone = true;
-                JSONArray tempArray = JSON.Parse(itemInfo) as JSONArray;
-                itemInfoJson = tempArray[0].AsObject;
+                var tempArray = JsonConvert.DeserializeObject<List<ItemData>>(itemInfo);
+                itemInfoJson = tempArray[0];
             };
-
             StartCoroutine(WebActions.GetItem(itemId, getItemInfoCallback));
-
             yield return new WaitUntil(() => isDone == true);
 
-            GameObject item = Instantiate(Resources.Load("Prefabs/Item") as GameObject);
-            item.transform.SetParent(transform);
-            item.transform.localScale = Vector3.one;
-            item.transform.localPosition = Vector3.zero;
-
-            item.transform.Find("Name").GetComponent<TMP_Text>().text = itemInfoJson["name"];
-            item.transform.Find("Price").GetComponent<TMP_Text>().text = itemInfoJson["price"];
-            item.transform.Find("Description").GetComponent<TMP_Text>().text = itemInfoJson["description"];
+            var item = Instantiate(Resources.Load("Prefabs/Item") as GameObject, transform.position, Quaternion.identity, transform);
+            item.transform.Find("Name").GetComponent<TMP_Text>().text = itemInfoJson.name;
+            item.transform.Find("Price").GetComponent<TMP_Text>().text = itemInfoJson.price;
+            item.transform.Find("Description").GetComponent<TMP_Text>().text = itemInfoJson.description;
         }
 
         yield return null;
     }
+}
+
+[Serializable]
+public class ItemIDs
+{
+    public string itemID;
+}
+
+[Serializable]
+public class ItemData
+{
+    public string name;
+    public string description;
+    public string price;
 }
