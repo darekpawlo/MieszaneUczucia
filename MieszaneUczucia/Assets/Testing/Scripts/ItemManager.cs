@@ -5,12 +5,14 @@ using System.Collections.Generic;
 using Newtonsoft.Json;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
-public class Items : MonoBehaviour
+public class ItemManager : MonoBehaviour
 {
     [Serializable]
     struct ItemIDs
     {
+        public string id;
         public string itemID;
     }
 
@@ -22,30 +24,49 @@ public class Items : MonoBehaviour
         public string price;
     }
 
+    [SerializeField] private Item itemPrefab;
+
     private void Start()
     {
         StartCoroutine(WebActions.GetItemsIDs(WebActions.UserInfo.ID, (jsonArray) =>
         {
-            CreateItemRoutine(jsonArray);
+            var itemIDs = JsonConvert.DeserializeObject<List<ItemIDs>>(jsonArray);
+            CreateItemRoutine(itemIDs);
         }));
     }
 
-    void CreateItemRoutine(string jsonArrayString)
-    {
-        var itemIDs = JsonConvert.DeserializeObject<List<ItemIDs>>(jsonArrayString);
-
+    void CreateItemRoutine(List<ItemIDs> itemIDs)
+    {       
         for (int i = 0; i < itemIDs.Count; i++)
         {
             string itemId = itemIDs[i].itemID;
+            string id = itemIDs[i].id;
+
             StartCoroutine(WebActions.GetItem(itemId, (itemInfo) =>
             {
                 var tempArray = JsonConvert.DeserializeObject<List<ItemData>>(itemInfo);
                 var itemInfoJson = tempArray[0];
 
-                var item = Instantiate(Resources.Load("Prefabs/Item") as GameObject, transform.position, Quaternion.identity, transform);
+                var item = Instantiate(itemPrefab, transform.position, Quaternion.identity, transform);
+
+                item.ID = id;
+                item.ItemID = itemId;
+
                 item.transform.Find("Name").GetComponent<TMP_Text>().text = itemInfoJson.name;
                 item.transform.Find("Price").GetComponent<TMP_Text>().text = itemInfoJson.price;
                 item.transform.Find("Description").GetComponent<TMP_Text>().text = itemInfoJson.description;
+                item.transform.Find("SellButton").GetComponent<Button>().onClick.AddListener(() =>
+                {
+                    StartCoroutine(WebActions.SellItem(id, itemId, WebActions.UserInfo.ID, () =>
+                    {
+                        Destroy(item.gameObject);
+                    }));
+                });
+
+                StartCoroutine(WebActions.GetItemIcon(itemId, (icon) =>
+                {
+                    item.transform.Find("Image").GetComponent<Image>().sprite = icon;
+                }));
             }));
         }
     }

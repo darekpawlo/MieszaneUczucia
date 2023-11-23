@@ -10,12 +10,14 @@ public class Login : MonoBehaviour
     [SerializeField] TMP_InputField userInput;
     [SerializeField] TMP_InputField passInput;
     [SerializeField] Button loginButton;
+    [SerializeField] TMP_Text prompt;
+    [SerializeField] TMP_Text prompt2;
 
     private void Start()
     {
         loginButton.onClick.AddListener(() =>
         {
-            StartCoroutine(WebActions.Login(userInput.text, passInput.text));
+            StartCoroutine(WebActions.Login(userInput.text, passInput.text, prompt, prompt2));
         });
     }
 }
