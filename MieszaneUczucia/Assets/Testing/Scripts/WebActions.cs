@@ -194,7 +194,7 @@ public static class WebActions
         }
     }
 
-    public static IEnumerator GetItemIcon(string itemID, Action<Sprite> callback)
+    public static IEnumerator GetItemIcon(string itemID, Action<byte[]> callback)
     {
         WWWForm form = new WWWForm();
         form.AddField("itemID", itemID);
@@ -218,13 +218,12 @@ public static class WebActions
                 case UnityWebRequest.Result.Success:
                     Debug.Log($"{pages[page]}: {webRequest.downloadHandler.text}");
 
-                    byte[] bytes = webRequest.downloadHandler.data;
+                    //byte[] bytes = webRequest.downloadHandler.data;
+                    //Texture2D texture = new Texture2D(2, 2);
+                    //texture.LoadImage(bytes);
+                    //Sprite sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
 
-                    Texture2D texture = new Texture2D(2, 2);
-                    texture.LoadImage(bytes);
-
-                    Sprite sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
-                    callback?.Invoke(sprite);
+                    callback?.Invoke(webRequest.downloadHandler.data);
                     break;
             }
         }

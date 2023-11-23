@@ -6,6 +6,7 @@ using Newtonsoft.Json;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using static UnityEditor.Progress;
 
 public class ItemManager : MonoBehaviour
 {
@@ -37,6 +38,25 @@ public class ItemManager : MonoBehaviour
 
     void CreateItemRoutine(List<ItemIDs> itemIDs)
     {       
+        void SetImage(Item item, string itemId)
+        {
+            ImageManager.CheckDirectory();
+            byte[] bytes = ImageManager.LoadImage(itemId);
+            //Download from web
+            if (bytes.Length == 0)
+            {
+                StartCoroutine(WebActions.GetItemIcon(itemId, (downloadBytes) =>
+                {
+                    item.transform.Find("Image").GetComponent<Image>().sprite = ImageManager.BytesToSprite(downloadBytes);
+                    ImageManager.SaveImage(itemId, downloadBytes);
+                }));
+            }
+            //Load from device
+            else
+            {
+                item.transform.Find("Image").GetComponent<Image>().sprite = ImageManager.BytesToSprite(bytes);
+            }
+        }
         for (int i = 0; i < itemIDs.Count; i++)
         {
             string itemId = itemIDs[i].itemID;
@@ -63,10 +83,7 @@ public class ItemManager : MonoBehaviour
                     }));
                 });
 
-                StartCoroutine(WebActions.GetItemIcon(itemId, (icon) =>
-                {
-                    item.transform.Find("Image").GetComponent<Image>().sprite = icon;
-                }));
+                SetImage(item, itemId);
             }));
         }
     }
