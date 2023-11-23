@@ -22,6 +22,7 @@ public static class WebActions
     static string item = $"{baseUrl}GetItem.php";
     static string sellItem = $"{baseUrl}SellItem.php";
     static string itemIcon = $"{baseUrl}GetItemIcon.php";
+    static string menu = $"{baseUrl}GetMenu.php";
 
     public static IEnumerator GetUsers(string uri)
     {
@@ -219,6 +220,33 @@ public static class WebActions
                     Debug.Log($"{pages[page]}: {webRequest.downloadHandler.text}");
 
                     callback?.Invoke(webRequest.downloadHandler.data);
+                    break;
+            }
+        }
+    }
+
+    public static IEnumerator GetMenu(Action<string> callBack)
+    {
+        using (UnityWebRequest webRequest = UnityWebRequest.Get(menu))
+        {
+            yield return webRequest.SendWebRequest();
+
+            string[] pages = menu.Split('/');
+            int page = pages.Length - 1;
+
+            switch (webRequest.result)
+            {
+                case UnityWebRequest.Result.ConnectionError:
+                case UnityWebRequest.Result.DataProcessingError:
+                    Debug.LogError(pages[page] + ": Error: " + webRequest.error);
+                    break;
+                case UnityWebRequest.Result.ProtocolError:
+                    Debug.LogError(pages[page] + ": HTTP Error: " + webRequest.error);
+                    break;
+                case UnityWebRequest.Result.Success:
+                    Debug.Log($"{pages[page]}: {webRequest.downloadHandler.text}");
+
+                    callBack?.Invoke(webRequest.downloadHandler.text);
                     break;
             }
         }
