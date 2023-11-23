@@ -15,9 +15,6 @@ EditorBuildSettings:
     path: Assets/Testing/Scenes/LoginMenu.unity
     guid: acecb8b83813954498fa31b5a15d70c5
   - enabled: 1
-    path: Assets/Testing/Scenes/Game.unity
-    guid: 48b928fa9df26064dad1e2e58b47dbbd
-  - enabled: 1
     path: Assets/Testing/Scenes/Gameplay.unity
     guid: 922f23ce06986754fa94d5f706fa7822
   m_configObjects: {}

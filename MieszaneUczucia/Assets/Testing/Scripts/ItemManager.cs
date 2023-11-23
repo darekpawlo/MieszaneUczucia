@@ -1,4 +1,3 @@
-using SimpleJSON;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -6,7 +5,6 @@ using Newtonsoft.Json;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using static UnityEditor.Progress;
 
 public class ItemManager : MonoBehaviour
 {
@@ -40,7 +38,6 @@ public class ItemManager : MonoBehaviour
     {       
         void SetImage(Item item, string itemId)
         {
-            ImageManager.CheckDirectory();
             byte[] bytes = ImageManager.LoadImage(itemId);
             //Download from web
             if (bytes.Length == 0)

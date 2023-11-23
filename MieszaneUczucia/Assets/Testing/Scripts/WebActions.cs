@@ -13,7 +13,7 @@ public static class WebActions
     static string swiatolowod = "192.168.1.24";
     static string router = "192.168.8.108";
 
-    static string uzywaneIP = swiatolowod;
+    public static string uzywaneIP = swiatolowod;
     static string baseUrl = $"http://{uzywaneIP}/UnityBackendTutorial/";
 
     static string loginUrl = $"{baseUrl}Login.php";
@@ -76,7 +76,7 @@ public static class WebActions
                 UserInfo.SetCredentials(username, password);
                 UserInfo.SetID(www.downloadHandler.text);
 
-                SceneManager.LoadScene(4);
+                SceneManager.LoadScene("Gameplay");
             }            
         }
     }
@@ -218,11 +218,6 @@ public static class WebActions
                 case UnityWebRequest.Result.Success:
                     Debug.Log($"{pages[page]}: {webRequest.downloadHandler.text}");
 
-                    //byte[] bytes = webRequest.downloadHandler.data;
-                    //Texture2D texture = new Texture2D(2, 2);
-                    //texture.LoadImage(bytes);
-                    //Sprite sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
-
                     callback?.Invoke(webRequest.downloadHandler.data);
                     break;
             }
@@ -236,8 +231,6 @@ public class UserInfo
     public string ID { get; private set; }  
     string Name;
     string Password;
-    string Level;
-    string Coins;
 
     public void SetCredentials(string username, string userPassword)
     {

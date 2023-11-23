@@ -7,17 +7,6 @@ public static class ImageManager
 {
     private static string basePath;
 
-    public static void CheckDirectory()
-    {
-        basePath = Application.persistentDataPath + "/Images/";
-        if (!Directory.Exists(basePath))
-        {
-            Directory.CreateDirectory(basePath);
-        }
-    }
-
-    public static bool ImageExists(string name) => File.Exists(basePath + name);
-
     public static void SaveImage(string name, byte[] bytes)
     {
         File.WriteAllBytes(basePath + name, bytes);
@@ -25,8 +14,11 @@ public static class ImageManager
 
     public static byte[] LoadImage(string name)
     {
+        basePath = Application.persistentDataPath + "/Images/";
+        if (!Directory.Exists(basePath)) Directory.CreateDirectory(basePath);
+
         byte[] bytes = new byte[0];
-        if(ImageExists(name))
+        if(File.Exists(basePath + name))
         {
             bytes = File.ReadAllBytes(basePath + name);
         }
