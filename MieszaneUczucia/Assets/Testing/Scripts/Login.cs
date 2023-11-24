@@ -20,4 +20,7 @@ public class Login : MonoBehaviour
             StartCoroutine(WebActions.Login(userInput.text, passInput.text, prompt, prompt2));
         });
     }
+
+    public void GoToRegister() => SceneManager.LoadScene("RegisterMenu");
+    public void GoToMenu() => SceneManager.LoadScene("Menu");
 }
