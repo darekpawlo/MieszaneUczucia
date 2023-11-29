@@ -13,7 +13,7 @@ public static class WebActions
     static string swiatolowod = "192.168.1.24";
     static string router = "192.168.8.108";
 
-    public static string uzywaneIP = router;
+    public static string uzywaneIP = swiatolowod;
     static string baseUrl = $"http://{uzywaneIP}/UnityBackendTutorial/";
 
     static string loginUrl = $"{baseUrl}Login.php";
@@ -23,6 +23,7 @@ public static class WebActions
     static string sellItem = $"{baseUrl}SellItem.php";
     static string itemIcon = $"{baseUrl}GetItemIcon.php";
     static string menu = $"{baseUrl}GetMenu.php";
+    static string menuOracle = $"{baseUrl}GetMenuOracle.php";
 
     public static IEnumerator GetUsers(string uri)
     {
@@ -234,6 +235,33 @@ public static class WebActions
             yield return webRequest.SendWebRequest();
 
             string[] pages = menu.Split('/');
+            int page = pages.Length - 1;
+
+            switch (webRequest.result)
+            {
+                case UnityWebRequest.Result.ConnectionError:
+                case UnityWebRequest.Result.DataProcessingError:
+                    Debug.LogError(pages[page] + ": Error: " + webRequest.error);
+                    break;
+                case UnityWebRequest.Result.ProtocolError:
+                    Debug.LogError(pages[page] + ": HTTP Error: " + webRequest.error);
+                    break;
+                case UnityWebRequest.Result.Success:
+                    Debug.Log($"{pages[page]}: {webRequest.downloadHandler.text}");
+
+                    callBack?.Invoke(webRequest.downloadHandler.text);
+                    break;
+            }
+        }
+    }
+
+    public static IEnumerator GetMenuOracle(Action<string> callBack)
+    {
+        using (UnityWebRequest webRequest = UnityWebRequest.Get(menuOracle))
+        {
+            yield return webRequest.SendWebRequest();
+
+            string[] pages = menuOracle.Split('/');
             int page = pages.Length - 1;
 
             switch (webRequest.result)
