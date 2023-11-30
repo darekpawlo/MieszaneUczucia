@@ -17,7 +17,7 @@ public class Login : MonoBehaviour
     {
         loginButton.onClick.AddListener(() =>
         {
-            StartCoroutine(WebActions.Login(userInput.text, passInput.text, prompt, prompt2));
+            StartCoroutine(WebActions.LoginOracle(userInput.text, passInput.text, prompt, prompt2));
         });
     }
 

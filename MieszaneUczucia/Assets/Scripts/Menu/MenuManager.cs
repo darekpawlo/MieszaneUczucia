@@ -10,6 +10,8 @@ using UnityEditor;
 
 public class MenuManager : MonoBehaviour
 {
+    public static MenuManager Instance { get; private set; }
+
     [SerializeField] MenuItem menuItemPrefab;
     [SerializeField] Transform menuItemHolder;
     [SerializeField] Transform menuPanel;
@@ -17,93 +19,36 @@ public class MenuManager : MonoBehaviour
     [Header("Scripts")]
     [SerializeField] OrderManager orderManager;
 
-    List<MenuItemData> menuItemsData = new List<MenuItemData>();
+    public static List<MenuItemData> MenuItemsData { get; private set; } = new List<MenuItemData>();
+
+    private void Awake()
+    {
+        Instance = this;
+
+        CreateItemRoutine();
+    }
 
     private void Start()
     {
         Application.targetFrameRate = 60;
         menuPanel.gameObject.SetActive(true);
-
-        CreateItemRoutine();
     }
 
     void CreateItemRoutine()
     {
-        void SetImage(MenuItem menuItem, string itemId)
-        {
-            byte[] bytes = ImageManager.LoadImage(itemId);
-            //Download from web
-            if (bytes.Length == 0)
-            {
-                StartCoroutine(WebActions.GetItemIcon(itemId, (downloadBytes) =>
-                {
-                    Sprite icon = ImageManager.BytesToSprite(downloadBytes);                    
-                    ImageManager.SaveImage(itemId, downloadBytes);
-                    menuItem.transform.Find("Icon").GetComponent<Image>().sprite = icon;
-                    menuItem.Data.SetIcon(icon);
-                }));                
-            }
-            //Load from device
-            else
-            {
-                Sprite icon = ImageManager.BytesToSprite(bytes);
-                menuItem.transform.Find("Icon").GetComponent<Image>().sprite = icon;
-                menuItem.Data.SetIcon(icon);
-            }
-        }
-
-        void SetImageData(MenuItemData data)
-        {
-            byte[] bytes = ImageManager.LoadImage(data.Id);
-            //Download from web
-            if (bytes.Length == 0)
-            {
-                StartCoroutine(WebActions.GetItemIcon(data.Id, (downloadBytes) =>
-                {
-                    Sprite icon = ImageManager.BytesToSprite(downloadBytes);
-                    ImageManager.SaveImage(data.Id, downloadBytes);
-                    data.SetIcon(icon);
-                }));
-            }
-            //Load from device
-            else
-            {
-                Sprite icon = ImageManager.BytesToSprite(bytes);
-                data.SetIcon(icon);
-            }
-        }
-
-        StartCoroutine(WebActions.GetMenu((menuItemJson) =>
+        StartCoroutine(WebActions.GetMenuOracle((menuItemJson) =>
         {
             var menuItems = JsonConvert.DeserializeObject<List<MenuItemJsonData>>(menuItemJson);
             foreach (var item in menuItems)
             {
-                var data = new MenuItemData(item.Id, item.Name, item.Description, item.Price);
-                SetImageData(data);
-                menuItemsData.Add(data);
+                var data = new MenuItemData(item.Id, item.Name, item.Description, item.Blocked, item.Price, ImageManager.BytesToSprite(Convert.FromBase64String(item.Icon)));
+                MenuItemsData.Add(data);
             }
 
-            for (int i = 0; i < 10; i++)
+            for (int i = 0; i < MenuItemsData.Count; i++)
             {
                 var menuItem = Instantiate(menuItemPrefab, transform.position, Quaternion.identity, menuItemHolder);
-                var itemData = menuItemsData[i];
-
-                menuItem.Data = itemData;
-                menuItem.transform.Find("Name").GetComponent<TMP_Text>().text = itemData.Name;
-                menuItem.transform.Find("Price").GetComponent<TMP_Text>().text = itemData.Price;
-                menuItem.transform.Find("Description").GetComponent<TMP_Text>().text = itemData.Description;
-                SetImage(menuItem, itemData.Id);
-                //menuItem.transform.Find("Icon").GetComponent<Image>().sprite = itemData.Icon;
-                menuItem.transform.GetComponent<Button>().onClick.AddListener(() =>
-                {
-                    MenuPanelState(false);
-                    orderManager.OrderPanelState(true);
-
-                    orderManager.SetOrderValues(itemData);                    
-                    orderManager.SetExtrasValues(menuItemsData[10], 0);
-                    orderManager.SetExtrasValues(menuItemsData[11], 1);
-                    orderManager.SetExtrasValues(menuItemsData[12], 2);
-                });
+                menuItem.Init(MenuItemsData[i]);                
             }        
         }));
     }
@@ -115,9 +60,22 @@ public class MenuManager : MonoBehaviour
 [Serializable]
 public struct MenuItemJsonData
 {
+    [JsonProperty("ID_pozycji")]
     public string Id;
+
+    [JsonProperty("Nazwa produktu")]
     public string Name;
-    public string Description;
+
+    [JsonProperty("Cena")]
     public string Price;
+
+    [JsonProperty("Zablokowane")]
+    public string Blocked;
+
+    [JsonProperty("Skladniki")]
+    public string Description;
+
+    [JsonProperty("Zdjecia")]
+    public string Icon;
 }
 

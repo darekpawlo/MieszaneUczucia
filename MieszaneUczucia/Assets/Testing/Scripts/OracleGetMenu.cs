@@ -15,7 +15,6 @@ public class OracleGetMenu : MonoBehaviour
             data = JsonConvert.DeserializeObject<List<TestData>>(menuItemJson);
 
             Sprite icon = ImageManager.BytesToSprite(Convert.FromBase64String(data[0].Icon));
-            
         }));
     }
 }
@@ -29,12 +28,15 @@ public struct TestData
     [JsonProperty("Nazwa produktu")]
     public string Name;
 
-    [JsonProperty("zablokowane")]
+    [JsonProperty("Cena")]
+    public string Price;
+
+    [JsonProperty("Zablokowane")]
     public string Blocked;
 
-    [JsonProperty("skladniki")]
+    [JsonProperty("Skladniki")]
     public string Description;
 
-    [JsonProperty("zdjecia")]
+    [JsonProperty("Zdjecia")]
     public string Icon;
 }

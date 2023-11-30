@@ -7,9 +7,16 @@ using UnityEngine.UI;
 
 public class OrderManager : MonoBehaviour
 {
+    public static OrderManager Instance { get; private set; }
+
     [SerializeField] Transform orderPanel;
     [SerializeField] Transform itemPanel;
     [SerializeField] Transform[] extraItemPanel;
+
+    private void Awake()
+    {
+        Instance = this;
+    }
 
     private void Start()
     {
@@ -20,15 +27,20 @@ public class OrderManager : MonoBehaviour
     {
         itemPanel.Find("Icon").GetComponent<Image>().sprite = data.Icon;
         itemPanel.Find("Name").GetComponent<TMP_Text>().SetText(data.Name);
-        itemPanel.Find("Price").GetComponent<TMP_Text>().SetText(data.Price);
+        itemPanel.Find("Price").GetComponent<TMP_Text>().SetText(data.Price.ToString("F"));
         itemPanel.Find("Description").GetComponent<TMP_Text>().SetText(data.Description);
     }
 
-    public void SetExtrasValues(MenuItemData data, int extraId)
+    public void SetExtrasValues()
     {
-        extraItemPanel[extraId].Find("Icon").GetComponent<Image>().sprite = data.Icon;
-        extraItemPanel[extraId].Find("Name").GetComponent<TMP_Text>().SetText(data.Name);
-        extraItemPanel[extraId].Find("Price").GetComponent<TMP_Text>().SetText(data.Price);
+        for (int i = 0; i < extraItemPanel.Length; i++)
+        {
+            var data = MenuManager.MenuItemsData[Random.Range(0, MenuManager.MenuItemsData.Count)];
+
+            extraItemPanel[i].Find("Icon").GetComponent<Image>().sprite = data.Icon;
+            extraItemPanel[i].Find("Name").GetComponent<TMP_Text>().SetText(data.Name);
+            extraItemPanel[i].Find("Price").GetComponent<TMP_Text>().SetText(data.Price.ToString("F"));
+        }
     }
 
     public void OrderPanelState(bool state) => orderPanel.gameObject.SetActive(state);

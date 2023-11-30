@@ -24,6 +24,8 @@ public static class WebActions
     static string itemIcon = $"{baseUrl}GetItemIcon.php";
     static string menu = $"{baseUrl}GetMenu.php";
     static string menuOracle = $"{baseUrl}GetMenuOracle.php";
+    static string loginOracle = $"{baseUrl}LoginOracle.php";
+    static string registerOracle = $"{baseUrl}RegisterOracle.php";
 
     public static IEnumerator GetUsers(string uri)
     {
@@ -279,6 +281,65 @@ public static class WebActions
                     callBack?.Invoke(webRequest.downloadHandler.text);
                     break;
             }
+        }
+    }
+
+    public static IEnumerator LoginOracle(string username, string password, TMP_Text prompt, TMP_Text prompt2)
+    {
+        WWWForm form = new WWWForm();
+        form.AddField("Nazwa", username);
+        form.AddField("Pass", password);
+
+        UnityWebRequest www = UnityWebRequest.Post(loginOracle, form);
+        yield return www.SendWebRequest();
+
+        if (www.result != UnityWebRequest.Result.Success)
+        {
+            Debug.Log(www.error);
+            prompt2.SetText(www.error);
+        }
+        else
+        {
+            Debug.Log(www.downloadHandler.text);
+            prompt.SetText(www.downloadHandler.text);
+            if (www.downloadHandler.text.Contains("Wrong cridentials") || www.downloadHandler.text.Contains("Username does not exist!"))
+            {
+                Debug.Log("Try Again");
+            }
+            else
+            {
+                //If we logged in correctly
+                UserInfo.SetCredentials(username, password);
+                UserInfo.SetID(www.downloadHandler.text);
+
+                SceneManager.LoadScene("Basket");
+            }
+        }
+    }
+
+    public static IEnumerator RegisterOracle(string username, string password, string phoneNumber)
+    {
+        WWWForm form = new WWWForm();
+        form.AddField("Nazwa", username);
+        form.AddField("Pass", password);
+        form.AddField("Tel", phoneNumber);
+
+        UnityWebRequest www = UnityWebRequest.Post(registerOracle, form);
+        yield return www.SendWebRequest();
+
+        if (www.result != UnityWebRequest.Result.Success)
+        {
+            Debug.Log(www.error);
+        }
+        else if(www.downloadHandler.text.Contains("User already exists!"))
+        {
+            Debug.Log("Try Again");
+        }
+        else
+        {
+            Debug.Log(www.downloadHandler.text);
+
+            SceneManager.LoadScene("LoginMenu");
         }
     }
 }
