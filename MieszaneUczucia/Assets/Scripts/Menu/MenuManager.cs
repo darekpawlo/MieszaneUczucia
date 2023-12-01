@@ -7,6 +7,7 @@ using TMPro;
 using UnityEngine.SceneManagement;
 using System;
 using UnityEditor;
+using System.Net;
 
 public class MenuManager : MonoBehaviour
 {
@@ -49,7 +50,7 @@ public class MenuManager : MonoBehaviour
             {
                 var menuItem = Instantiate(menuItemPrefab, transform.position, Quaternion.identity, menuItemHolder);
                 menuItem.Init(MenuItemsData[i]);                
-            }        
+            }
         }));
     }
 

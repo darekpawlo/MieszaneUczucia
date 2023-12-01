@@ -15,7 +15,7 @@ public static class WebActions
     static string swiatolowod = "192.168.1.24";
     static string router = "192.168.8.108";
 
-    public static string uzywaneIP = swiatolowod;
+    public static string uzywaneIP = router;
     static string baseUrl = $"http://{uzywaneIP}/UnityBackendTutorial/";
 
     static string loginUrl = $"{baseUrl}Login.php";
