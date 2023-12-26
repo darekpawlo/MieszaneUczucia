@@ -8,9 +8,9 @@ using UnityEngine.UI;
 
 public class MenuItem : MonoBehaviour
 {   
-    public MenuItemData Data;  
+    public MenuItemData Data;
 
-    public void Init(MenuItemData data)
+    public void Init(MenuItemData data, Transform itemPanel, Action<MenuItemData> callBack = null)
     {
         Data = data;
 
@@ -20,11 +20,9 @@ public class MenuItem : MonoBehaviour
         transform.Find("Icon").GetComponent<Image>().sprite = data.Icon;
         transform.GetComponent<Button>().onClick.AddListener(() =>
         {
-            MenuManager.Instance.MenuPanelState(false);
-            OrderManager.Instance.OrderPanelState(true);
+            itemPanel.gameObject.SetActive(true);
 
-            OrderManager.Instance.SetOrderValues(data);
-            OrderManager.Instance.SetExtrasValues();
+            callBack?.Invoke(data);
         });
     }
 }

@@ -6,8 +6,6 @@ using Newtonsoft.Json;
 using TMPro;
 using UnityEngine.SceneManagement;
 using System;
-using UnityEditor;
-using System.Net;
 
 public class MenuManager : MonoBehaviour
 {
@@ -40,6 +38,7 @@ public class MenuManager : MonoBehaviour
         StartCoroutine(WebActions.GetMenuOracle((menuItemJson) =>
         {
             var menuItems = JsonConvert.DeserializeObject<List<MenuItemJsonData>>(menuItemJson);
+            MenuItemsData.Clear();
             foreach (var item in menuItems)
             {
                 var data = new MenuItemData(item.Id, item.Name, item.Description, item.Blocked, item.Price, ImageManager.BytesToSprite(Convert.FromBase64String(item.Icon)));
@@ -49,7 +48,11 @@ public class MenuManager : MonoBehaviour
             for (int i = 0; i < MenuItemsData.Count; i++)
             {
                 var menuItem = Instantiate(menuItemPrefab, transform.position, Quaternion.identity, menuItemHolder);
-                menuItem.Init(MenuItemsData[i]);                
+                menuItem.Init(MenuItemsData[i], orderManager.GetOrderPanel, (itemData) =>
+                {
+                    orderManager.SetOrderValues(itemData);
+                    orderManager.SetBottomBar();
+                });                
             }
         }));
     }

@@ -4,33 +4,91 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using Unity.VisualScripting;
 
 public class AdminManager : MonoBehaviour
 {
     public static AdminManager Instance;
 
-    [SerializeField] private Transform AddAccountPanel;
-    [SerializeField] private Transform ConfigureAccountsPanel;
+    [SerializeField] Transform AddAccountPanel;
+    [SerializeField] Transform ConfigureAccountsPanel;
 
     [Header("CrateAccount")]
-    [SerializeField] private Button CreateAccountButton;
-    [SerializeField] private TMP_InputField loginInput;
-    [SerializeField] private TMP_InputField passInput;
-    [SerializeField] private TMP_Dropdown typeDropdown;
+    [SerializeField] Button CreateAccountButton;
+    [SerializeField] TMP_InputField loginInput;
+    [SerializeField] TMP_InputField passInput;
+    [SerializeField] TMP_Dropdown typeDropdown;
+
+    [Header("ConfigureAccoutn")]
+    [SerializeField] Transform workerLayoutGroup;
+    [SerializeField] Transform configurationPanel;
+    [SerializeField] TMP_InputField nameInput;
+    [SerializeField] TMP_InputField passwordInput;
+    [SerializeField] TMP_InputField typeInput;
+    List<Transform> spawnedWorkers = new List<Transform>();
+    Employee activeWorker;
 
     private void Awake()
     {
         Instance = this;
     }
 
-    public void ConfigureAccounts()
+    public void ShowAccounts()
     {
         AddAccountPanel.gameObject.SetActive(false);
         ConfigureAccountsPanel.gameObject.SetActive(true);
 
-        StartCoroutine(WebActions.AllUsersOracle((jsonString) =>
+        StartCoroutine(WebActions.AllWorkersOracle((jsonString) =>
         {
-            var rootObject = JsonConvert.DeserializeObject<RootObject>(jsonString);
+            foreach (var workerObject in spawnedWorkers)
+            {
+                Destroy(workerObject.gameObject);
+            }
+            spawnedWorkers.Clear();
+
+            var workersList = JsonConvert.DeserializeObject<List<Employee>>(jsonString);
+            foreach (var worker in workersList)
+            {
+                var workerPrefab = workerLayoutGroup.GetChild(0);
+                var workerObject = Instantiate(workerPrefab, workerPrefab.transform.position, Quaternion.identity, workerLayoutGroup);
+                var text = workerObject.GetChild(0).GetComponent<TMP_Text>();
+                workerObject.gameObject.SetActive(true);
+
+                text.SetText($"" +
+                    $"ID: {worker.Id}, Type: {worker.Type} \n" +
+                    $"Name: {worker.Name} \n" +
+                    $"Password: {worker.Password} \n" +                 
+                    $"");
+                workerObject.GetComponent<Button>().onClick.AddListener(() =>
+                {
+                    nameInput.text = worker.Name;
+                    passwordInput.text = worker.Password;
+                    typeInput.text = worker.Type;
+
+                    activeWorker = worker;
+                    configurationPanel.gameObject.SetActive(true);
+                });
+
+                spawnedWorkers.Add(workerObject);
+            }
+        }));        
+    }
+
+    public void UpdateWorker()
+    {
+        StartCoroutine(WebActions.UpdateWorkerOracle(activeWorker.Id, nameInput.text, passwordInput.text, typeInput.text, (webText) =>
+        {
+            configurationPanel.gameObject.SetActive(false);
+            ShowAccounts();
+        }));
+    }
+
+    public void DeleteWorker()
+    {
+        StartCoroutine(WebActions.DeleteWorkerOracle(activeWorker.Id, (webText) =>
+        {
+            configurationPanel.gameObject.SetActive(false);
+            ShowAccounts();
         }));
     }
 
@@ -60,37 +118,15 @@ public class AdminManager : MonoBehaviour
     public struct Employee
     {
         [JsonProperty("ID_pracownika")]
-        public string EmployeeId { get; set; }
+        public string Id { get; set; }
 
         [JsonProperty("Typ_pracownika")]
-        public string EmployeeType { get; set; }
+        public string Type { get; set; }
 
         [JsonProperty("Haslo")]
         public string Password { get; set; }
 
         [JsonProperty("Nazwa")]
         public string Name { get; set; }
-    }
-    public struct Client
-    {
-        [JsonProperty("ID_klienta")]
-        public string ClientId { get; set; }
-
-        [JsonProperty("Nazwa")]
-        public string Name { get; set; }
-
-        [JsonProperty("Nrtelefonu")]
-        public string PhoneNumber { get; set; }
-
-        [JsonProperty("Haslo")]
-        public string Password { get; set; }
-    }
-    public struct RootObject
-    {
-        [JsonProperty("PRACOWNICY")]
-        public List<Employee> Employees { get; set; }
-
-        [JsonProperty("KLIENCI")]
-        public List<Client> Clients { get; set; }
     }
 }
