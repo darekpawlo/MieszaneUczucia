@@ -6,38 +6,73 @@ using Newtonsoft.Json;
 using TMPro;
 using UnityEngine.SceneManagement;
 using System;
+using System.Threading.Tasks;
 
 public class MenuManager : MonoBehaviour
 {
     public static MenuManager Instance { get; private set; }
+    public static List<MenuItemData> MenuItemsData { get; private set; } = new List<MenuItemData>();
 
     [SerializeField] MenuItem menuItemPrefab;
     [SerializeField] Transform menuItemHolder;
     [SerializeField] Transform menuPanel;
+    
 
     [Header("Scripts")]
     [SerializeField] OrderManager orderManager;
 
-    public static List<MenuItemData> MenuItemsData { get; private set; } = new List<MenuItemData>();
+    [Header("LoadingBar")]
+    [SerializeField] Transform loadingBarPrefab;
+    Transform activeBar;
+    float barValue = 0;
+
+    TaskManager taskManager = new TaskManager();
 
     private void Awake()
     {
         Instance = this;
 
-        CreateItemRoutine();
+        CallWebAction();
     }
 
     private void Start()
     {
         Application.targetFrameRate = 60;
         menuPanel.gameObject.SetActive(true);
+
+        SpawnBar();
     }
 
-    void CreateItemRoutine()
+    private void Update()
     {
-        StartCoroutine(WebActions.GetMenuOracle((menuItemJson) =>
+        if (activeBar == null) return;
+
+        barValue += 0.01f;
+        UpdateLoadingBar(barValue);
+        if (barValue >= 1)
         {
-            var menuItems = JsonConvert.DeserializeObject<List<MenuItemJsonData>>(menuItemJson);
+            barValue = 0;
+        }
+    } 
+
+    public void GoToLogin() => SceneManager.LoadScene("LoginMenu");
+    public void MenuPanelState(bool state) => menuPanel.gameObject.SetActive(state);
+
+    async void CallWebAction()
+    {
+        await taskManager.RunTaskAsync(async cancellationToken =>
+        {
+            var tcs = new TaskCompletionSource<string>();
+
+            await WebActions.GetMenuOracleAsync(cancellationToken, (text) =>
+            {
+                tcs.SetResult(text);
+            });
+
+            string responseText = await tcs.Task;
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var menuItems = JsonConvert.DeserializeObject<List<MenuItemJsonData>>(responseText);
             MenuItemsData.Clear();
             foreach (var item in menuItems)
             {
@@ -50,15 +85,35 @@ public class MenuManager : MonoBehaviour
                 var menuItem = Instantiate(menuItemPrefab, transform.position, Quaternion.identity, menuItemHolder);
                 menuItem.Init(MenuItemsData[i], orderManager.GetOrderPanel, (itemData) =>
                 {
-                    orderManager.SetOrderValues(itemData);
-                    orderManager.SetBottomBar();
-                });                
+                    orderManager.Init(itemData);
+                });
             }
-        }));
+        });
+
+        DestoryBar();
     }
 
-    public void GoToLogin() => SceneManager.LoadScene("LoginMenu");
-    public void MenuPanelState(bool state) => menuPanel.gameObject.SetActive(state);
+    void SpawnBar()
+    {
+        if (activeBar != null) Destroy(activeBar.gameObject);
+        activeBar = Instantiate(loadingBarPrefab, loadingBarPrefab.transform.position, Quaternion.identity, menuItemHolder);
+
+        RectTransform rect = activeBar.GetComponent<RectTransform>();
+        rect.sizeDelta = new Vector2(rect.sizeDelta.x, 850);
+    }
+
+    void DestoryBar()
+    {
+        if (activeBar == null) return;
+        Destroy(activeBar.gameObject);
+        activeBar = null;
+    }
+
+    void UpdateLoadingBar(float value)
+    {
+        Image bar = activeBar.Find("Bar").GetComponent<Image>();
+        bar.fillAmount = value;
+    }
 }
 
 [Serializable]

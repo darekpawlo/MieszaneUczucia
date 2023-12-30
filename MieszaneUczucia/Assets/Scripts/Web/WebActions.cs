@@ -6,7 +6,9 @@ using UnityEngine.Networking;
 using UnityEngine.SceneManagement;
 using TMPro;
 using Newtonsoft.Json;
-using UnityEditor;
+using System.Threading.Tasks;
+using System.Threading;
+using System.Net;
 
 public static class WebActions
 {
@@ -29,6 +31,7 @@ public static class WebActions
     static string insertMenuOracle = $"{baseUrl}InsertMenuOracle.php";    
     static string updateMenuOracle = $"{baseUrl}UpdateMenuOracle.php";    
     static string deleteMenuOracle = $"{baseUrl}DeleteMenuOracle.php";    
+    static string getOrderConfigurationOracle = $"{baseUrl}GetConfigurationOracle.php";        
 
     public static IEnumerator GetMenuOracle(Action<string> callBack)
     {
@@ -53,6 +56,36 @@ public static class WebActions
 
                     callBack?.Invoke(webRequest.downloadHandler.text);
                     break;
+            }
+        }
+    }
+
+    public static async Task GetMenuOracleAsync(CancellationToken cancellationToken, Action<string> callBack)
+    {
+        using (UnityWebRequest www = UnityWebRequest.Get(menuOracle))
+        {
+            var operation = www.SendWebRequest();
+
+            while (!operation.isDone)
+            {
+                await Task.Yield();
+
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    Debug.Log("Task was cancelled.");
+                    www.Abort();
+                    return;
+                }
+            }
+
+            if(www.result != UnityWebRequest.Result.Success)
+            {
+                Debug.Log(www.error);
+            }
+            else
+            {
+                Debug.Log(www.downloadHandler.text);
+                callBack?.Invoke(www.downloadHandler.text);
             }
         }
     }
@@ -321,6 +354,39 @@ public static class WebActions
             Debug.Log(www.downloadHandler.text);
 
             callBack?.Invoke(www.downloadHandler.text);
+        }
+    }
+
+    public static async Task GetOrderConfigurationOracleAsync(string id, CancellationToken cancellationToken, Action<string> callBack)
+    {
+        WWWForm form = new WWWForm();
+        form.AddField("Id", id);
+
+        using (UnityWebRequest www = UnityWebRequest.Post(getOrderConfigurationOracle, form))
+        {
+            var operation = www.SendWebRequest();
+
+            while (!operation.isDone)
+            {
+                await Task.Yield();
+
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    Debug.Log("Task was cancelled.");
+                    www.Abort();
+                    return;
+                }
+            }
+
+            if (www.result != UnityWebRequest.Result.Success)
+            {
+                Debug.Log(www.error);
+            }
+            else
+            {
+                Debug.Log(www.downloadHandler.text);
+                callBack?.Invoke(www.downloadHandler.text);
+            }
         }
     }
 }
