@@ -18,7 +18,7 @@ public class Order
 
     public float CalculatePrice()
     {
-        float price = MenuItem.Amount * MenuItem.Data.Price;
+        float price = MenuItem.Amount * MenuItem.Price;
 
         foreach (ConfigurationItemOrder conf in ConfigurationItems)
         {
@@ -32,13 +32,15 @@ public class Order
 [System.Serializable]
 public class MenuItemOrder
 {
-    public MenuItemData Data;
+    public string Name;
+    public float Price;
     public int Amount;
 
-    public MenuItemOrder(MenuItemData item, int amount)
+    public MenuItemOrder(string name, int amount, float price)
     {
-        Data = item;
         Amount = amount;
+        Name = name;
+        Price = price;
     }
 }
 

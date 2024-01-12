@@ -74,35 +74,43 @@ public class OrderManager : MonoBehaviour
     async void CallWebAction(MenuItemData data)
     {
         await taskManager.RunTaskAsync(async cancellationToken =>
-        {           
-            // Define a TaskCompletionSource to handle the callback as a Task
+        {
             var tcs = new TaskCompletionSource<string>();
 
-            // Call the async method with the cancellation token
-            await WebActions.GetOrderConfigurationOracleAsync(data.Id, cancellationToken, (text) =>
+            // Handle cancellation
+            using (cancellationToken.Register(() => tcs.TrySetCanceled()))
             {
-                tcs.SetResult(text);
-            });
+                await WebActions.GetOrderConfigurationOracleAsync(data.Id, cancellationToken, (text) =>
+                {
+                    tcs.SetResult(text);
+                });
 
-            // Await the TaskCompletionSource's Task
-            string responseText = await tcs.Task;
+                string responseText;
+                try
+                {
+                    responseText = await tcs.Task;
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
+                catch (OperationCanceledException)
+                {
+                    Debug.Log("Operation was cancelled.");
+                    return; // Early exit if the operation is cancelled
+                }
 
-            // Check if cancellation was requested before continuing
-            cancellationToken.ThrowIfCancellationRequested();
+                List<ConfigurationItemData> configurationItemsData = JsonConvert.DeserializeObject<List<ConfigurationItemData>>(responseText);
+                foreach (var configurationItemData in configurationItemsData)
+                {
+                    var item = Instantiate(configurationItemPrefab, configurationItemPrefab.transform.position, Quaternion.identity, layoutGroup);
+                    item.Init(configurationItemData, UpdatePriceText);
 
-            List<ConfigurationItemData> configurationItemsData = new List<ConfigurationItemData>();
-            configurationItemsData = JsonConvert.DeserializeObject<List<ConfigurationItemData>>(responseText);
-            for (int i = 0; i < configurationItemsData.Count; i++)
-            {
-                var item = Instantiate(configurationItemPrefab, configurationItemPrefab.transform.position, Quaternion.identity, layoutGroup);
-                item.Init(configurationItemsData[i], UpdatePriceText);
-
-                spawnedConfigurationItems.Add(item);
+                    spawnedConfigurationItems.Add(item);
+                }
             }
         });
 
         DestoryBar();
     }
+
 
     public void SetOrderValues(MenuItemData data)
     {
@@ -114,20 +122,18 @@ public class OrderManager : MonoBehaviour
 
     public void UpdatePriceText()
     {
-        //TotalAmount = data.Price * itemAmount;
-        //priceText.text = TotalAmount.ToString("F");
         priceText.text = orderPrice.ToString("F");
         amountText.text = $"{menuItemAmount}";
     }
 
     public void Confirm()
     {
-        var menuItem = new MenuItemOrder(activeItem, menuItemAmount);
+        var menuItem = new MenuItemOrder(activeItem.Name, menuItemAmount, activeItem.Price);
         var configurationItems = new List<ConfigurationItemOrder>();
 
         foreach (var item in spawnedConfigurationItems)
         {
-            if (item.amount < 0) continue;
+            if (item.amount <= 0) continue;
             var configurationItem = new ConfigurationItemOrder(item.data.Produkt, item.amount, item.data.Cena);
             configurationItems.Add(configurationItem);
         }
@@ -185,10 +191,10 @@ public class OrderManager : MonoBehaviour
 public struct ConfigurationItemData
 {
     public string Produkt;
-    public int Cena { get => cena/100; set => cena = value; }
-    int cena;
+    public float Cena { get => cena/100; set => cena = value; }
+    float cena;
 
-    public ConfigurationItemData(string produkt, int cena)
+    public ConfigurationItemData(string produkt, float cena)
     {
         Produkt = produkt;
         this.cena = cena;

@@ -32,6 +32,10 @@ public static class WebActions
     static string updateMenuOracle = $"{baseUrl}UpdateMenuOracle.php";    
     static string deleteMenuOracle = $"{baseUrl}DeleteMenuOracle.php";    
     static string getOrderConfigurationOracle = $"{baseUrl}GetConfigurationOracle.php";        
+    static string insertZamowienieOracle = $"{baseUrl}InsertZamowienieOracle.php";        
+    static string insertKonfiguracjeOracle = $"{baseUrl}InsertConfigurationOracle.php";        
+    static string getMenuOracle_Id_Name = $"{baseUrl}GetMenuOracle_Id_Name.php";        
+    static string insertOptionsConfigurationOracle = $"{baseUrl}InsertOptionsConfigurationOracle.php";        
 
     public static IEnumerator GetMenuOracle(Action<string> callBack)
     {
@@ -81,6 +85,7 @@ public static class WebActions
             if(www.result != UnityWebRequest.Result.Success)
             {
                 Debug.Log(www.error);
+                Prompt.Instance.ShowTooltip(www.error);
             }
             else
             {
@@ -90,79 +95,79 @@ public static class WebActions
         }
     }
 
-    public static IEnumerator LoginOracle(string username, string password, TMP_Text prompt, TMP_Text prompt2)
+    public static async Task LoginOracleAsync(string username, string password, CancellationToken cancellationToken, Action<string> callBack)
     {
         WWWForm form = new WWWForm();
         form.AddField("Nazwa", username);
         form.AddField("Pass", password);
 
-        UnityWebRequest www = UnityWebRequest.Post(loginOracle, form);
-        yield return www.SendWebRequest();
+        using (UnityWebRequest www = UnityWebRequest.Post(loginOracle, form))
+        {
+            var operation = www.SendWebRequest();
 
-        if (www.result != UnityWebRequest.Result.Success)
-        {
-            Debug.Log(www.error);
-            prompt2.SetText(www.error);
-        }
-        else
-        {
-            Debug.Log(www.downloadHandler.text);
-            prompt.SetText(www.downloadHandler.text);
-            if (www.downloadHandler.text.Contains("Wrong cridentials") || www.downloadHandler.text.Contains("Username does not exist!"))
+            while (!operation.isDone)
             {
-                Debug.Log("Try Again");
+                await Task.Yield();
+
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    Debug.Log("Task was cancelled.");
+                    www.Abort();
+                    return;
+                }
+            }
+
+            if (www.result != UnityWebRequest.Result.Success)
+            {
+                Debug.Log(www.error);
             }
             else
-            {                
-                if (www.downloadHandler.text.Contains("Nrtelefonu"))
-                {
-                    var jsonData = JsonConvert.DeserializeObject<List<UserInfo.ClientDataJson>>(www.downloadHandler.text);
-                    UserInfo.SetClientCridentials(username, password, jsonData[0]);
-                    SceneManager.LoadScene("Basket");
-                }
-                else if(www.downloadHandler.text.Contains("Typ_pracownika"))
-                {
-                    var jsonData = JsonConvert.DeserializeObject<List<UserInfo.WorkerDataJson>>(www.downloadHandler.text);
-                    UserInfo.SetWorkerCridentials(username, password, jsonData[0]);
+            {
+                Debug.Log(www.downloadHandler.text);
 
-                    if(www.downloadHandler.text.Contains("Menedzer"))
-                    {
-                        Debug.Log("Menedzer");
-                        SceneManager.LoadScene("ManagerMenu");
-                    }
-                    else if(www.downloadHandler.text.Contains("Admin"))
-                    {
-                        Debug.Log("Admin");
-                        SceneManager.LoadScene("AdminMenu");
-                    }
-                }
+                callBack?.Invoke(www.downloadHandler.text);       
             }
         }
     }
 
-    public static IEnumerator RegisterOracle(string username, string password, string phoneNumber)
+    public static async Task RegisterOracleAsync(string username, string password, string phoneNumber, CancellationToken cancellationToken, Action<string> callBack)
     {
         WWWForm form = new WWWForm();
         form.AddField("Nazwa", username);
         form.AddField("Pass", password);
         form.AddField("Tel", phoneNumber);
 
-        UnityWebRequest www = UnityWebRequest.Post(registerOracle, form);
-        yield return www.SendWebRequest();
+        using (UnityWebRequest www = UnityWebRequest.Post(registerOracle, form))
+        {
+            var operation = www.SendWebRequest();
 
-        if (www.result != UnityWebRequest.Result.Success)
-        {
-            Debug.Log(www.error);
-        }
-        else if(www.downloadHandler.text.Contains("User already exists!"))
-        {
-            Debug.Log("Try Again");
-        }
-        else
-        {
-            Debug.Log(www.downloadHandler.text);
+            while (!operation.isDone)
+            {
+                await Task.Yield();
 
-            SceneManager.LoadScene("LoginMenu");
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    Debug.Log("Task was cancelled.");
+                    www.Abort();
+                    return;
+                }
+            }
+
+            if (www.result != UnityWebRequest.Result.Success)
+            {
+                Debug.Log(www.error);
+                Prompt.Instance.ShowTooltip($"Error: {www.error}");
+            }
+            else if (www.downloadHandler.text.Contains("User already exists!"))
+            {
+                Prompt.Instance.ShowTooltip("User already exists!");
+            }
+            else
+            {
+                Debug.Log(www.downloadHandler.text);
+                //SceneManager.LoadScene("LoginMenu");
+                callBack?.Invoke(www.downloadHandler.text);
+            }
         }
     }
 
@@ -389,6 +394,125 @@ public static class WebActions
             }
         }
     }
+
+    public static async Task InsertZamowienieOracleAsync(string idKlienta, string status, string zamowione, string opis, CancellationToken cancellationToken, Action<string> callBack)
+    {
+        WWWForm form = new WWWForm();
+        form.AddField("IdKlienta", idKlienta);
+        form.AddField("Status", status);
+        form.AddField("Zamowione", zamowione);
+        form.AddField("Opis", opis);
+
+        using (UnityWebRequest www = UnityWebRequest.Post(insertZamowienieOracle, form))
+        {
+            var operation = www.SendWebRequest();
+
+            while (!operation.isDone)
+            {
+                await Task.Yield();
+
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    Debug.Log("Task was cancelled.");
+                    www.Abort();
+                    return;
+                }
+            }
+
+            if (www.result != UnityWebRequest.Result.Success)
+            {
+                Debug.Log(www.error);
+            }
+            else
+            {
+                Debug.Log(www.downloadHandler.text);
+                callBack?.Invoke(www.downloadHandler.text);
+            }
+        }
+    }
+
+    public static async Task InsertKonfiguracjeOracleAsync(string produkt, string cena, CancellationToken cancellationToken, Action<string> callBack)
+    {
+        WWWForm form = new WWWForm();
+        form.AddField("Produkt", produkt);
+        form.AddField("Cena", cena);
+
+        using (UnityWebRequest www = UnityWebRequest.Post(insertKonfiguracjeOracle, form))
+        {
+            var operation = www.SendWebRequest();
+
+            while (!operation.isDone)
+            {
+                await Task.Yield();
+
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    Debug.Log("Task was cancelled.");
+                    www.Abort();
+                    return;
+                }
+            }
+
+            if (www.result != UnityWebRequest.Result.Success)
+            {
+                Debug.Log(www.error);
+            }
+            else
+            {
+                Debug.Log(www.downloadHandler.text);
+                callBack?.Invoke(www.downloadHandler.text);
+            }
+        }
+    }
+
+    public static async Task GetMenuOracleAsync_Id_Name(CancellationToken cancellationToken, Action<string> callBack)
+    {
+        using (UnityWebRequest www = UnityWebRequest.Get(getMenuOracle_Id_Name))
+        {
+            var operation = www.SendWebRequest();
+
+            while (!operation.isDone)
+            {
+                await Task.Yield();
+
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    Debug.Log("Task was cancelled.");
+                    www.Abort();
+                    return;
+                }
+            }
+
+            if (www.result != UnityWebRequest.Result.Success)
+            {
+                Debug.Log(www.error);
+            }
+            else
+            {
+                Debug.Log(www.downloadHandler.text);
+                callBack?.Invoke(www.downloadHandler.text);
+            }
+        }
+    }
+
+    public static IEnumerator InsertOptionsConfigurationOracle(string idPozycji, string idOpcji, Action<string> callBack)
+    {
+        WWWForm form = new WWWForm();
+        form.AddField("ID_Pozycji", idPozycji);
+        form.AddField("ID_Opcji", idOpcji);
+
+        UnityWebRequest www = UnityWebRequest.Post(insertOptionsConfigurationOracle, form);
+        yield return www.SendWebRequest();
+
+        if (www.result != UnityWebRequest.Result.Success)
+        {
+            Debug.Log(www.error);
+        }
+        else
+        {
+            callBack?.Invoke(www.downloadHandler.text);
+        }
+    }
 }
 
 [Serializable]
@@ -400,12 +524,16 @@ public class UserInfo
     public string PhoneNumber { get; private set; } = null;
     public string WorkerType { get; private set; } = null;
 
+    public bool ClientLoggedIn { get; private set; }
+
     public void SetClientCridentials(string username, string userPassword, ClientDataJson data)
     {
         ID = data.ID;
         Name = username;
         Password = userPassword;
         PhoneNumber = data.Tel;
+
+        ClientLoggedIn = true;
     }
 
     public void SetWorkerCridentials(string username, string userPassword, WorkerDataJson data)

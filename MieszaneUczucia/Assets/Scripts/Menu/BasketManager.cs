@@ -1,8 +1,12 @@
+using Newtonsoft.Json;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class BasketManager : MonoBehaviour
@@ -10,14 +14,32 @@ public class BasketManager : MonoBehaviour
     public static BasketManager Instance;
     public static float totalCost { get; private set; }
 
+    [Header("Basket")]
     [SerializeField] Transform basket;
-    [SerializeField] Transform bottomBar;
     [SerializeField] Transform basketPanel;
     [SerializeField] Transform basketParent;
     [SerializeField] Transform basketItemPrefab;
-    [SerializeField] List<Order> orderds = new List<Order>();
 
+    [Header("BottomBar")]
+    [SerializeField] Transform bottomBar;
+    [SerializeField] Sprite loginIcon;
+    [SerializeField] Sprite payIcon;
+
+    [Header("Login")]
+    [SerializeField] Transform loginPanel;
+
+    [Header("Confirmation")]
+    [SerializeField] Transform confirmationPanel;
+    [SerializeField] TMP_Dropdown orderType;
+    [SerializeField] TMP_InputField postalCode;
+    [SerializeField] TMP_InputField city;
+    [SerializeField] TMP_InputField road;
+    [SerializeField] List<GameObject> clientAdressFields;
+
+    [SerializeField] List<Order> orderds = new List<Order>();
     List<Transform> basketItems = new List<Transform>();
+
+    TaskManager taskManager = new TaskManager();
 
     private void Awake()
     {
@@ -73,9 +95,20 @@ public class BasketManager : MonoBehaviour
 
         var text = bottomBar.Find("Text").GetComponent<TMP_Text>();
         var totalCost = bottomBar.Find("TotalText").GetComponent<TMP_Text>();
+        var icon = bottomBar.Find("Image").GetChild(0).GetComponent<Image>();
 
-        text.text = $"ZAP£AÆ: ";
-        totalCost.text = BasketManager.totalCost.ToString("F");
+        if (WebActions.UserInfo.ClientLoggedIn)
+        {
+            text.text = $"ZAMAWIAM I P£ACÊ: ";
+            totalCost.text = BasketManager.totalCost.ToString("F");
+            icon.sprite = payIcon;
+        }
+        else
+        {
+            text.text = $"ZALOGUJ SIÊ";
+            totalCost.text = "";
+            icon.sprite = loginIcon;
+        }
     }
 
 
@@ -98,11 +131,11 @@ public class BasketManager : MonoBehaviour
             var price = basketItem.GetChild(1).GetComponent<TMP_Text>();
             Button cancel = basketItem.GetChild(2).GetComponent<Button>();
 
-            float orderPrice = order.MenuItem.Amount * order.MenuItem.Data.Price;
+            float orderPrice = order.MenuItem.Amount * order.MenuItem.Price;
             int itemSize = 200;
             int selectedConfItems = 0;
 
-            name.text = $"<b>{order.MenuItem.Data.Name} x{order.MenuItem.Amount}: </b>\n";
+            name.text = $"<b>{order.MenuItem.Name} x{order.MenuItem.Amount}: </b>\n";
             price.text =  $"<b>{orderPrice:F} </b>\n";
 
             foreach (var conf in order.ConfigurationItems)
@@ -132,7 +165,6 @@ public class BasketManager : MonoBehaviour
 
                 ShowBasketItems();
                 UpdateBottomBar();
-                //UpdateBasketText();
             });
 
             basketItems.Add(basketItem);
@@ -147,7 +179,51 @@ public class BasketManager : MonoBehaviour
 
     public void Confirm()
     {
+        if(WebActions.UserInfo.ClientLoggedIn)
+        {
+            ConfirmationPanelInit();
+        }
+        else
+        {
+            loginPanel.gameObject.SetActive(true);
+        }
+    }
 
+    public void CancelConfirmation()
+    {
+        orderType.value = 0;
+        confirmationPanel.gameObject.SetActive(false);
+        CancelOrder();
+    }
+
+    public void ConfirmConfirmation()
+    {
+        if(orderType.value == 1)
+        {
+            if (postalCode.text.Length < 0 || postalCode.text.Length > 5)
+            {
+                Prompt.Instance.ShowTooltip("Nie poprawny kod pocztowy");
+                return;
+            }
+
+            PlayerPrefs.SetInt("KodPocztowy", int.Parse(postalCode.text));
+            PlayerPrefs.SetString("Miasto", city.text);
+            PlayerPrefs.SetString("Ulica", road.text);
+        }      
+
+        if(int.Parse(postalCode.text) != 59600)
+        {
+            Prompt.Instance.ShowTooltip("Przepraszamy, ale ten rejon nie jest jeszcze obs³ugiwany przez nasz¹ restauracjê!");
+            return;
+        }
+
+        if(taskManager.IsTaskRunning)
+        {
+            Debug.Log("Task is already running!");
+            return;
+        }    
+
+        CallWebAction();
     }
 
     void CalculateCost()
@@ -157,5 +233,76 @@ public class BasketManager : MonoBehaviour
         {
             totalCost += order.CalculatePrice();
         }
+    }
+
+    void ConfirmationPanelInit()
+    {
+        confirmationPanel.gameObject.SetActive(true);
+
+        if(PlayerPrefs.HasKey("KodPocztowy"))
+        {
+            postalCode.text = PlayerPrefs.GetInt("KodPocztowy").ToString();
+            city.text = PlayerPrefs.GetString("Miasto").ToString();
+            road.text = PlayerPrefs.GetString("Ulica").ToString();
+        }        
+
+        orderType.onValueChanged.AddListener((value) =>
+        {
+            switch (value)
+            {
+                case 0:
+                    clientAdressFields.ForEach(gameObject => gameObject.SetActive(false));
+                    break;
+                case 1:
+                    clientAdressFields.ForEach(gameObject => gameObject.SetActive(true));
+                    break;
+            }
+        });
+    }
+
+    async void CallWebAction()
+    {
+        string opisText = string.Empty;
+        if (orderType.value == 0)
+        {
+            opisText = $"Dostawa: {orderType.options[orderType.value].text}";
+        }
+        else
+        {
+            opisText = $"Dostawa: {orderType.options[orderType.value].text}, Adres: {postalCode.text}, {city.text}, {road.text}. ";
+        }
+        opisText += $"Zamówienie kosztowa³o: { totalCost}";
+
+        await taskManager.RunTaskAsync(async cancellationToken =>
+        {
+            var tcs = new TaskCompletionSource<string>();
+
+            using (cancellationToken.Register(() => tcs.TrySetCanceled()))
+            {
+                await WebActions.InsertZamowienieOracleAsync(WebActions.UserInfo.ID, "oczekuje", FormatOrderToString(), opisText, cancellationToken, (text) =>
+                {
+                    tcs.SetResult(text);
+                });
+
+                string responseText;
+                try
+                {
+                    responseText = await tcs.Task;
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
+                catch (OperationCanceledException)
+                {
+                    Debug.Log("Operation was cancelled.");
+                    return;
+                }
+
+                Prompt.Instance.ShowTooltip("Zamówienie oczekuje akceptacji przez obs³ugê!");
+            }
+        });
+    }    
+
+    string FormatOrderToString()
+    {
+        return JsonConvert.SerializeObject(orderds, Formatting.Indented);
     }
 }

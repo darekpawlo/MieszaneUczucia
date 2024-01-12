@@ -53,9 +53,14 @@ public class MenuManager : MonoBehaviour
         {
             barValue = 0;
         }
-    } 
+    }
 
-    public void GoToLogin() => SceneManager.LoadScene("LoginMenu");
+    public void GoToLogin()
+    {
+        Cancel();
+        SceneManager.LoadScene("LoginMenu");
+    }
+
     public void MenuPanelState(bool state) => menuPanel.gameObject.SetActive(state);
 
     async void CallWebAction()
@@ -113,6 +118,11 @@ public class MenuManager : MonoBehaviour
     {
         Image bar = activeBar.Find("Bar").GetComponent<Image>();
         bar.fillAmount = value;
+    }
+
+    void Cancel()
+    {
+        taskManager.CancelCurrentTask();
     }
 }
 

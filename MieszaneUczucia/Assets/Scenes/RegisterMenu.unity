@@ -2975,7 +2975,7 @@ MonoBehaviour:
   passInput: {fileID: 735661594}
   phoneInput: {fileID: 1035410800}
   confirmInput: {fileID: 670608446}
-  loginButton: {fileID: 634980824}
+  registerButton: {fileID: 634980824}
 --- !u!1 &1854655192
 GameObject:
   m_ObjectHideFlags: 0
