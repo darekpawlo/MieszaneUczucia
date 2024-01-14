@@ -43,6 +43,18 @@ public class ManagerMenu : MonoBehaviour
     int amountOfDoneOperations = 0;
     int amountOfOperations = 0;
 
+    [Header("ConfigureConfiguration")]
+    [SerializeField] Transform confConfigurationLayoutGroup;
+    [SerializeField] GameObject configurationItem;
+    [SerializeField] Transform confConfigurationPanel;
+    List<GameObject> spawnedConfigurationItems = new List<GameObject>();
+    [SerializeField] Transform confSpecificConfigurationPanel;
+    [SerializeField] Transform specificConfLayoutGroup;
+    [SerializeField] TMP_InputField specificConfNameInput;
+    [SerializeField] TMP_InputField specificConfPriceInput;
+    List<GameObject> spawnedSpecificConfItem = new List<GameObject>();
+    ConfigurationItemOnlyJson activeConfiguration;
+
     List<MenuItem> activeMenuItems = new List<MenuItem>();
     MenuItemData activeItemData;
 
@@ -85,12 +97,9 @@ public class ManagerMenu : MonoBehaviour
     {
         configurationItemPanel.gameObject.SetActive(true);
 
-        if(spawnedItemToConfigure.Count > 0)
-        {
-            spawnedItemToConfigure.ForEach(item => { Destroy(item.gameObject); });
-            spawnedItemToConfigure.Clear();
-        }
-        
+        if (spawnedItemToConfigure.Count > 0) spawnedItemToConfigure.ForEach(item => { Destroy(item.gameObject); });
+        spawnedItemToConfigure.Clear();
+
         Prompt.Instance.ShowLoadingBar();
         CallWebActionGet();
     }
@@ -104,7 +113,7 @@ public class ManagerMenu : MonoBehaviour
         amountOfOperations = 0;
         foreach (var item in spawnedItemToConfigure)
         {
-            if(item.ActiveCheckmark) amountOfOperations++;
+            if (item.ActiveCheckmark) amountOfOperations++;
         }
         CallWebActionInsert();
     }
@@ -218,6 +227,184 @@ public class ManagerMenu : MonoBehaviour
         });
     }
 
+    async void CallWebActionGetConfiguration()
+    {
+        await taskManager.RunTaskAsync(async cancellationToken =>
+        {
+            var tcs = new TaskCompletionSource<string>();
+
+            // Handle cancellation
+            using (cancellationToken.Register(() => tcs.TrySetCanceled()))
+            {
+                await WebActions.GetOnlyConfigurationOracle(cancellationToken, (text) =>
+                {
+                    tcs.SetResult(text);
+                });
+
+                string responseText;
+                try
+                {
+                    responseText = await tcs.Task;
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
+                catch (OperationCanceledException)
+                {
+                    Debug.Log("Operation was cancelled.");
+                    return; // Early exit if the operation is cancelled
+                }
+
+                if (responseText.Contains("error"))
+                {
+                    Prompt.Instance.ShowTooltip(responseText);
+                    return;
+                }
+
+                List<ConfigurationItemOnlyJson> list = JsonConvert.DeserializeObject<List<ConfigurationItemOnlyJson>>(responseText);
+
+                foreach (var item in list)
+                {
+                    var confItem = Instantiate(configurationItem, confConfigurationLayoutGroup.position, Quaternion.identity, confConfigurationLayoutGroup);
+                    confItem.gameObject.SetActive(true);
+                    var name = confItem.transform.GetChild(0).GetComponent<TMP_Text>();
+                    var button = confItem.GetComponent<Button>();
+
+                    name.text = item.Produkt;
+                    button.onClick.AddListener(() =>
+                    {
+                        activeConfiguration = item;
+                        Prompt.Instance.ShowLoadingBar();
+
+                        confSpecificConfigurationPanel.gameObject.SetActive(true);
+                        specificConfNameInput.text = item.Produkt;
+                        specificConfPriceInput.text = activeConfiguration.Cena;
+
+                        CallWebActionGetConfigurationMenuItems(activeConfiguration.ID_opcji);
+                    });
+
+                    spawnedConfigurationItems.Add(confItem);
+                }
+
+                Prompt.Instance.HideLoadingBar();
+            }
+        });
+    }
+
+    async void CallWebActionGetConfigurationMenuItems(string id)
+    {
+        if (spawnedItemToConfigure.Count > 0) spawnedItemToConfigure.ForEach(item => { Destroy(item.gameObject); });
+        spawnedItemToConfigure.Clear();
+
+        await taskManager.RunTaskAsync(async cancellationToken =>
+        {
+            var tcs = new TaskCompletionSource<string>();
+
+            // Handle cancellation
+            using (cancellationToken.Register(() => tcs.TrySetCanceled()))
+            {
+                await WebActions.GetConfigurationMenuItemsOracle(id, cancellationToken, (text) =>
+                {
+                    tcs.SetResult(text);
+                });
+
+                string responseText;
+                try
+                {
+                    responseText = await tcs.Task;
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
+                catch (OperationCanceledException)
+                {
+                    Debug.Log("Operation was cancelled.");
+                    return; // Early exit if the operation is cancelled
+                }
+
+                if (responseText.Contains("error"))
+                {
+                    Prompt.Instance.ShowTooltip(responseText);
+                    return;
+                }
+
+                ConfigurationMenuItemsJson item = JsonConvert.DeserializeObject<ConfigurationMenuItemsJson>(responseText);
+                
+                foreach (var related in item.related)
+                {
+                    var spawnedItem = Instantiate(itemToConfigure, specificConfLayoutGroup.position, Quaternion.identity, specificConfLayoutGroup.transform);
+                    spawnedItem.gameObject.SetActive(true);
+
+                    var text = spawnedItem.transform.Find("Text").GetComponent<TMP_Text>();
+                    var button = spawnedItem.GetComponent<Button>();
+                    var checkmark = spawnedItem.transform.Find("CheckmarkBackground").GetChild(0);
+
+                    var createdItem = spawnedItem.AddComponent<ItemToConfigure>();
+                    createdItem.Init(new MenuItemIdName(related.ID_pozycji, related.Nazwaproduktu), text, checkmark, button, true);
+
+                    spawnedItemToConfigure.Add(createdItem);
+                }
+
+                foreach (var unrelated in item.unrelated)
+                {
+                    var spawnedItem = Instantiate(itemToConfigure, specificConfLayoutGroup.position, Quaternion.identity, specificConfLayoutGroup.transform);
+                    spawnedItem.gameObject.SetActive(true);
+
+                    var text = spawnedItem.transform.Find("Text").GetComponent<TMP_Text>();
+                    var button = spawnedItem.GetComponent<Button>();
+                    var checkmark = spawnedItem.transform.Find("CheckmarkBackground").GetChild(0);
+
+                    var createdItem = spawnedItem.AddComponent<ItemToConfigure>();
+                    createdItem.Init(new MenuItemIdName(unrelated.ID_pozycji, unrelated.Nazwaproduktu), text, checkmark, button);
+
+                    spawnedItemToConfigure.Add(createdItem);
+                }
+
+                Prompt.Instance.HideLoadingBar();
+            }
+        });
+    }
+
+    async void CallWebActionDeleteConfiguration(string idOpcji)
+    {
+        if (spawnedItemToConfigure.Count > 0) spawnedItemToConfigure.ForEach(item => { Destroy(item.gameObject); });
+        spawnedItemToConfigure.Clear();
+
+        await taskManager.RunTaskAsync(async cancellationToken =>
+        {
+            var tcs = new TaskCompletionSource<string>();
+
+            // Handle cancellation
+            using (cancellationToken.Register(() => tcs.TrySetCanceled()))
+            {
+                await WebActions.DeleteConfigurationOracle(idOpcji, cancellationToken, (text) =>
+                {
+                    tcs.SetResult(text);
+                });
+
+                string responseText;
+                try
+                {
+                    responseText = await tcs.Task;
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
+                catch (OperationCanceledException)
+                {
+                    Debug.Log("Operation was cancelled.");
+                    return; // Early exit if the operation is cancelled
+                }
+
+                if (responseText.Contains("error"))
+                {
+                    Prompt.Instance.ShowTooltip(responseText);
+                    return;
+                }
+
+                Prompt.Instance.ShowTooltip(responseText, () =>
+                {
+                    confSpecificConfigurationPanel.gameObject.SetActive(false);
+                    ConfConfigurationInit();
+                });
+            }
+        });
+    }
+
     public void ShowMenu()
     {
         foreach (MenuItem item in activeMenuItems)
@@ -271,6 +458,26 @@ public class ManagerMenu : MonoBehaviour
     {
         SceneManager.LoadScene("Menu");
     }
+
+    public void ConfConfigurationInit()
+    {
+        if (spawnedConfigurationItems.Count > 0) spawnedConfigurationItems.ForEach(item => { Destroy(item.gameObject); });
+        spawnedConfigurationItems.Clear();
+
+        Prompt.Instance.ShowLoadingBar();
+        if (!taskManager.IsTaskRunning) CallWebActionGetConfiguration();
+    }
+
+    public void DeleteConf()
+    {
+        Prompt.Instance.ShowLoadingBar();
+        CallWebActionDeleteConfiguration(activeConfiguration.ID_opcji);
+    }
+
+    public void UpdateConf()
+    {
+
+    }
 }
 
 public class MenuItemIdName
@@ -291,16 +498,18 @@ public class ItemToConfigure : MonoBehaviour
     public Transform Checkmark;
     public bool ActiveCheckmark = false;
 
-    public void Init(MenuItemIdName data ,TMP_Text text, Transform checkmark, Button button)
+    public void Init(MenuItemIdName data, TMP_Text text, Transform checkmark, Button button, bool activeCheckmark = false)
     {
         Data = data;
         Checkmark = checkmark;
+        ActiveCheckmark = activeCheckmark;
 
         text.text = $"{Data.ID_pozycji}:{Data.NazwaProduktu}";
+        checkmark.gameObject.SetActive(ActiveCheckmark);
         button.onClick.AddListener(() =>
         {
-            checkmark.gameObject.SetActive(!checkmark.gameObject.activeSelf);
             ActiveCheckmark = !ActiveCheckmark;
+            checkmark.gameObject.SetActive(ActiveCheckmark);
         });
 
     }
@@ -316,4 +525,33 @@ public class ItemToConfigure : MonoBehaviour
         Checkmark.gameObject.SetActive(false);
         ActiveCheckmark = false;
     }
+}
+
+[Serializable]
+public class ConfigurationItemOnlyJson
+{
+    public string ID_opcji { get; set; }
+    public string Produkt { get; set; }
+    public string Cena { get; set; }
+}
+
+
+public class ConfigurationMenuItemsJson
+{
+    public Related[] related { get; set; }
+    public Unrelated[] unrelated { get; set; }
+}
+
+public class Related
+{
+    public string ID_pozycji { get; set; }
+    [JsonProperty("Nazwa produktu")]
+    public string Nazwaproduktu { get; set; }
+}
+
+public class Unrelated
+{
+    public string ID_pozycji { get; set; }
+    [JsonProperty("Nazwa produktu")]
+    public string Nazwaproduktu { get; set; }
 }

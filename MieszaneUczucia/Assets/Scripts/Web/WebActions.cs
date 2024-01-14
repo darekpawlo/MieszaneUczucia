@@ -8,7 +8,6 @@ using TMPro;
 using Newtonsoft.Json;
 using System.Threading.Tasks;
 using System.Threading;
-using System.Net;
 
 public static class WebActions
 {
@@ -17,7 +16,7 @@ public static class WebActions
     static string swiatolowod = "192.168.1.21";
     static string router = "192.168.8.108";
 
-    public static string uzywaneIP = swiatolowod;
+    public static string uzywaneIP = router;
     static string baseUrl = $"http://{uzywaneIP}/UnityBackendTutorial/";
 
     static string menuOracle = $"{baseUrl}GetMenuOracle.php";
@@ -35,7 +34,10 @@ public static class WebActions
     static string insertZamowienieOracle = $"{baseUrl}InsertZamowienieOracle.php";        
     static string insertKonfiguracjeOracle = $"{baseUrl}InsertConfigurationOracle.php";        
     static string getMenuOracle_Id_Name = $"{baseUrl}GetMenuOracle_Id_Name.php";        
+    static string getOnlyConfigurationOracle = $"{baseUrl}GetOnlyConfigurationOracle.php";        
     static string insertOptionsConfigurationOracle = $"{baseUrl}InsertOptionsConfigurationOracle.php";        
+    static string getConfigurationMenuItemsOracle = $"{baseUrl}GetConfigurationMenuItemsOracle.php";        
+    static string deleteConfigurationOracle = $"{baseUrl}DeleteConfigurationOracle.php";        
 
     public static IEnumerator GetMenuOracle(Action<string> callBack)
     {
@@ -511,6 +513,102 @@ public static class WebActions
         else
         {
             callBack?.Invoke(www.downloadHandler.text);
+        }
+    }
+
+    public static async Task GetOnlyConfigurationOracle(CancellationToken cancellationToken, Action<string> callBack)
+    {
+        using (UnityWebRequest www = UnityWebRequest.Get(getOnlyConfigurationOracle))
+        {
+            var operation = www.SendWebRequest();
+
+            while (!operation.isDone)
+            {
+                await Task.Yield();
+
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    Debug.Log("Task was cancelled.");
+                    www.Abort();
+                    return;
+                }
+            }
+
+            if (www.result != UnityWebRequest.Result.Success)
+            {
+                Debug.Log(www.error);
+            }
+            else
+            {
+                Debug.Log(www.downloadHandler.text);
+                callBack?.Invoke(www.downloadHandler.text);
+            }
+        }
+    }
+
+    public static async Task GetConfigurationMenuItemsOracle(string IdOpcji, CancellationToken cancellationToken, Action<string> callBack)
+    {
+        WWWForm form = new WWWForm();
+        form.AddField("ID_opcji", IdOpcji);
+
+        using (UnityWebRequest www = UnityWebRequest.Post(getConfigurationMenuItemsOracle, form))
+        {
+            var operation = www.SendWebRequest();
+
+            while (!operation.isDone)
+            {
+                await Task.Yield();
+
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    Debug.Log("Task was cancelled.");
+                    www.Abort();
+                    return;
+                }
+            }
+
+            if (www.result != UnityWebRequest.Result.Success)
+            {
+                Debug.Log(www.error);
+            }
+            else
+            {
+                Debug.Log(www.downloadHandler.text);
+                callBack?.Invoke(www.downloadHandler.text);
+            }
+        }
+    }
+
+    public static async Task DeleteConfigurationOracle(string IdOpcji, CancellationToken cancellationToken, Action<string> callBack)
+    {
+        WWWForm form = new WWWForm();
+        form.AddField("ID_opcji", IdOpcji);
+
+        using (UnityWebRequest www = UnityWebRequest.Post(deleteConfigurationOracle, form))
+        {
+            var operation = www.SendWebRequest();
+
+            while (!operation.isDone)
+            {
+                await Task.Yield();
+
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    Debug.Log("Task was cancelled.");
+                    www.Abort();
+                    return;
+                }
+            }
+
+            if (www.result != UnityWebRequest.Result.Success)
+            {
+                Debug.Log(www.error);
+            }
+            else
+            {
+                Debug.Log(www.downloadHandler.text);
+                callBack?.Invoke(www.downloadHandler.text);
+            }
         }
     }
 }

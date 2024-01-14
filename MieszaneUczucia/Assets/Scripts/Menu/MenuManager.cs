@@ -77,6 +77,15 @@ public class MenuManager : MonoBehaviour
             string responseText = await tcs.Task;
             cancellationToken.ThrowIfCancellationRequested();
 
+            if(responseText.Contains("error"))
+            {
+                Prompt.Instance.ShowTooltip(responseText, () =>
+                {
+                    SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+                });
+                return;
+            }
+
             var menuItems = JsonConvert.DeserializeObject<List<MenuItemJsonData>>(responseText);
             MenuItemsData.Clear();
             foreach (var item in menuItems)
