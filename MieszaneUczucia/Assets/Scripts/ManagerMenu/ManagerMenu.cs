@@ -405,6 +405,70 @@ public class ManagerMenu : MonoBehaviour
         });
     }
 
+    async void CallWebActionUpdateConfiguration(string idOpcji)
+    {
+        string IdPozycjiDodaj = "";
+        string IdPozycjiUsun = "";
+        for (int i = 0; i < spawnedItemToConfigure.Count; i++)
+        {
+            if (spawnedItemToConfigure[i].ActiveCheckmark)
+            {
+                IdPozycjiDodaj += $"{spawnedItemToConfigure[i].Data.ID_pozycji},";
+            }
+            else
+            {
+                IdPozycjiUsun += $"{spawnedItemToConfigure[i].Data.ID_pozycji},";
+            }
+        }
+
+        await taskManager.RunTaskAsync(async cancellationToken =>
+        {
+            var tcs = new TaskCompletionSource<string>();
+
+            // Handle cancellation
+            using (cancellationToken.Register(() => tcs.TrySetCanceled()))
+            {
+                await WebActions.UpdateConfiguration(idOpcji, specificConfNameInput.text, specificConfPriceInput.text, IdPozycjiDodaj, IdPozycjiUsun, cancellationToken, (text) =>
+                {
+                    tcs.SetResult(text);
+                });
+
+                string responseText;
+                try
+                {
+                    responseText = await tcs.Task;
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
+                catch (OperationCanceledException)
+                {
+                    Debug.Log("Operation was cancelled.");
+                    return; // Early exit if the operation is cancelled
+                }
+
+                if (responseText.Contains("error"))
+                {
+                    if (spawnedItemToConfigure.Count > 0) spawnedItemToConfigure.ForEach(item => { Destroy(item.gameObject); });
+                    spawnedItemToConfigure.Clear();
+
+                    Prompt.Instance.ShowTooltip(responseText, () =>
+                    {
+                        confSpecificConfigurationPanel.gameObject.SetActive(false);
+                    });
+                    return;
+                }
+
+                Prompt.Instance.ShowTooltip(responseText, () =>
+                {
+                    if (spawnedItemToConfigure.Count > 0) spawnedItemToConfigure.ForEach(item => { Destroy(item.gameObject); });
+                    spawnedItemToConfigure.Clear();
+
+                    confSpecificConfigurationPanel.gameObject.SetActive(false);
+                    ConfConfigurationInit();
+                });
+            }
+        });
+    }
+
     public void ShowMenu()
     {
         foreach (MenuItem item in activeMenuItems)
@@ -476,7 +540,8 @@ public class ManagerMenu : MonoBehaviour
 
     public void UpdateConf()
     {
-
+        Prompt.Instance.ShowLoadingBar();
+        CallWebActionUpdateConfiguration(activeConfiguration.ID_opcji);
     }
 }
 

@@ -38,6 +38,8 @@ public static class WebActions
     static string insertOptionsConfigurationOracle = $"{baseUrl}InsertOptionsConfigurationOracle.php";        
     static string getConfigurationMenuItemsOracle = $"{baseUrl}GetConfigurationMenuItemsOracle.php";        
     static string deleteConfigurationOracle = $"{baseUrl}DeleteConfigurationOracle.php";        
+    static string updateConfigurationOracle = $"{baseUrl}UpdateConfigurationOracle.php";        
+    static string getOrdersOracle = $"{baseUrl}GetOrdersOracle.php";        
 
     public static IEnumerator GetMenuOracle(Action<string> callBack)
     {
@@ -585,6 +587,73 @@ public static class WebActions
         form.AddField("ID_opcji", IdOpcji);
 
         using (UnityWebRequest www = UnityWebRequest.Post(deleteConfigurationOracle, form))
+        {
+            var operation = www.SendWebRequest();
+
+            while (!operation.isDone)
+            {
+                await Task.Yield();
+
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    Debug.Log("Task was cancelled.");
+                    www.Abort();
+                    return;
+                }
+            }
+
+            if (www.result != UnityWebRequest.Result.Success)
+            {
+                Debug.Log(www.error);
+            }
+            else
+            {
+                Debug.Log(www.downloadHandler.text);
+                callBack?.Invoke(www.downloadHandler.text);
+            }
+        }
+    }
+
+    public static async Task UpdateConfiguration(string IdOpcji, string produkt, string cena, string IdPozycjiDodaj, string IdPozycjiUsun, CancellationToken cancellationToken, Action<string> callBack)
+    {
+        WWWForm form = new WWWForm();
+        form.AddField("ID_opcji", IdOpcji);
+        form.AddField("Produkt", produkt);
+        form.AddField("Cena", cena);
+        form.AddField("ID_pozycji", IdPozycjiDodaj);
+        form.AddField("ID_pozycji_do_usuniecia", IdPozycjiUsun);
+
+        using (UnityWebRequest www = UnityWebRequest.Post(updateConfigurationOracle, form))
+        {
+            var operation = www.SendWebRequest();
+
+            while (!operation.isDone)
+            {
+                await Task.Yield();
+
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    Debug.Log("Task was cancelled.");
+                    www.Abort();
+                    return;
+                }
+            }
+
+            if (www.result != UnityWebRequest.Result.Success)
+            {
+                Debug.Log(www.error);
+            }
+            else
+            {
+                Debug.Log(www.downloadHandler.text);
+                callBack?.Invoke(www.downloadHandler.text);
+            }
+        }
+    }
+
+    public static async Task GetOrderOracle(CancellationToken cancellationToken, Action<string> callBack)
+    {
+        using (UnityWebRequest www = UnityWebRequest.Get(updateConfigurationOracle))
         {
             var operation = www.SendWebRequest();
 
