@@ -211,7 +211,7 @@ public class BasketManager : MonoBehaviour
             PlayerPrefs.SetString("Ulica", road.text);
         }      
 
-        if(int.Parse(postalCode.text) != 59600)
+        if(int.Parse(postalCode.text) != 59600 && orderType.value != 0)
         {
             Prompt.Instance.ShowTooltip("Przepraszamy, ale ten rejon nie jest jeszcze obs³ugiwany przez nasz¹ restauracjê!");
             return;
@@ -221,8 +221,9 @@ public class BasketManager : MonoBehaviour
         {
             Debug.Log("Task is already running!");
             return;
-        }    
+        }
 
+        Prompt.Instance.ShowLoadingBar();
         CallWebAction();
     }
 
@@ -265,7 +266,7 @@ public class BasketManager : MonoBehaviour
         string opisText = string.Empty;
         if (orderType.value == 0)
         {
-            opisText = $"Dostawa: {orderType.options[orderType.value].text}";
+            opisText = $"Dostawa: {orderType.options[orderType.value].text}. ";
         }
         else
         {
@@ -296,7 +297,11 @@ public class BasketManager : MonoBehaviour
                     return;
                 }
 
-                Prompt.Instance.ShowTooltip("Zamówienie oczekuje akceptacji przez obs³ugê!");
+                Prompt.Instance.ShowTooltip("Zamówienie oczekuje akceptacji przez obs³ugê!", () =>
+                {
+                    confirmationPanel.gameObject.SetActive(false);
+                    CancelOrder();
+                });
             }
         });
     }    

@@ -8,6 +8,7 @@ using TMPro;
 using Newtonsoft.Json;
 using System.Threading.Tasks;
 using System.Threading;
+using Unity.VisualScripting;
 
 public static class WebActions
 {
@@ -16,7 +17,7 @@ public static class WebActions
     static string swiatolowod = "192.168.1.21";
     static string router = "192.168.8.108";
 
-    public static string uzywaneIP = router;
+    public static string uzywaneIP = swiatolowod;
     static string baseUrl = $"http://{uzywaneIP}/UnityBackendTutorial/";
 
     static string menuOracle = $"{baseUrl}GetMenuOracle.php";
@@ -40,6 +41,14 @@ public static class WebActions
     static string deleteConfigurationOracle = $"{baseUrl}DeleteConfigurationOracle.php";        
     static string updateConfigurationOracle = $"{baseUrl}UpdateConfigurationOracle.php";        
     static string getOrdersOracle = $"{baseUrl}GetOrdersOracle.php";        
+    static string updateStatusOracle = $"{baseUrl}UpdateStatusOracle.php";        
+    static string getWarehouseOracle = $"{baseUrl}GetWarehouseOracle.php";        
+    static string deleteWarehouseOracle = $"{baseUrl}DeleteWarehouseOracle.php";        
+    static string insertWarehouseOracle = $"{baseUrl}InsertWarehouseOracle.php";        
+    static string updateWarehouseOracle = $"{baseUrl}UpdateWarehouseOracle.php";        
+    static string getBlockMenuOracle = $"{baseUrl}GetMenuOracle_Id_Name_Blocked_Icon.php";        
+    static string updateBlockMenuOracle = $"{baseUrl}UpdateBlockMenuOracle.php";        
+    static string getOrdersDoneOracle = $"{baseUrl}GetOrdersDoneOracle.php";        
 
     public static IEnumerator GetMenuOracle(Action<string> callBack)
     {
@@ -653,7 +662,267 @@ public static class WebActions
 
     public static async Task GetOrderOracle(CancellationToken cancellationToken, Action<string> callBack)
     {
-        using (UnityWebRequest www = UnityWebRequest.Get(updateConfigurationOracle))
+        using (UnityWebRequest www = UnityWebRequest.Get(getOrdersOracle))
+        {
+            var operation = www.SendWebRequest();
+
+            while (!operation.isDone)
+            {
+                await Task.Yield();
+
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    Debug.Log("Task was cancelled.");
+                    www.Abort();
+                    return;
+                }
+            }
+
+            if (www.result != UnityWebRequest.Result.Success)
+            {
+                Debug.Log(www.error);
+            }
+            else
+            {
+                Debug.Log(www.downloadHandler.text);
+                callBack?.Invoke(www.downloadHandler.text);
+            }
+        }
+    }
+
+    public static async Task UpdateStatucOracle(string IdZamowienia, string Status, CancellationToken cancellationToken, Action<string> callBack)
+    {
+        WWWForm form = new WWWForm();
+        form.AddField("ID_zamowienia", IdZamowienia);
+        form.AddField("Status", Status);
+
+        using (UnityWebRequest www = UnityWebRequest.Post(updateStatusOracle, form))
+        {
+            var operation = www.SendWebRequest();
+
+            while (!operation.isDone)
+            {
+                await Task.Yield();
+
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    Debug.Log("Task was cancelled.");
+                    www.Abort();
+                    return;
+                }
+            }
+
+            if (www.result != UnityWebRequest.Result.Success)
+            {
+                Debug.Log(www.error);
+            }
+            else
+            {
+                Debug.Log(www.downloadHandler.text);
+                callBack?.Invoke(www.downloadHandler.text);
+            }
+        }
+    }
+
+    public static async Task GetWarehouseOracle(CancellationToken cancellationToken, Action<string> callBack)
+    {
+        using (UnityWebRequest www = UnityWebRequest.Get(getWarehouseOracle))
+        {
+            var operation = www.SendWebRequest();
+
+            while (!operation.isDone)
+            {
+                await Task.Yield();
+
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    Debug.Log("Task was cancelled.");
+                    www.Abort();
+                    return;
+                }
+            }
+
+            if (www.result != UnityWebRequest.Result.Success)
+            {
+                Debug.Log(www.error);
+            }
+            else
+            {
+                Debug.Log(www.downloadHandler.text);
+                callBack?.Invoke(www.downloadHandler.text);
+            }
+        }
+    }
+
+    public static async Task DeleteWarehouseOracle(string IDProduktu, CancellationToken cancellationToken, Action<string> callBack)
+    {
+        WWWForm form = new WWWForm();
+        form.AddField("ID_produktu", IDProduktu);
+
+        using (UnityWebRequest www = UnityWebRequest.Post(deleteWarehouseOracle, form))
+        {
+            var operation = www.SendWebRequest();
+
+            while (!operation.isDone)
+            {
+                await Task.Yield();
+
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    Debug.Log("Task was cancelled.");
+                    www.Abort();
+                    return;
+                }
+            }
+
+            if (www.result != UnityWebRequest.Result.Success)
+            {
+                Debug.Log(www.error);
+            }
+            else
+            {
+                Debug.Log(www.downloadHandler.text);
+                callBack?.Invoke(www.downloadHandler.text);
+            }
+        }
+    }
+
+    public static async Task InsertWarehouseOracle(string nazwa, string ilosc, CancellationToken cancellationToken, Action<string> callBack)
+    {
+        WWWForm form = new WWWForm();
+        form.AddField("Nazwa", nazwa);
+        form.AddField("Ilosc", ilosc);
+
+        using (UnityWebRequest www = UnityWebRequest.Post(insertWarehouseOracle, form))
+        {
+            var operation = www.SendWebRequest();
+
+            while (!operation.isDone)
+            {
+                await Task.Yield();
+
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    Debug.Log("Task was cancelled.");
+                    www.Abort();
+                    return;
+                }
+            }
+
+            if (www.result != UnityWebRequest.Result.Success)
+            {
+                Debug.Log(www.error);
+            }
+            else
+            {
+                Debug.Log(www.downloadHandler.text);
+                callBack?.Invoke(www.downloadHandler.text);
+            }
+        }
+    }
+
+    public static async Task UpdateWarehouseOracle(string IdProduktu, string ilosci, CancellationToken cancellationToken, Action<string> callBack)
+    {
+        WWWForm form = new WWWForm();
+        form.AddField("ID_produktow", IdProduktu);
+        form.AddField("Ilosci", ilosci);
+
+        using (UnityWebRequest www = UnityWebRequest.Post(updateWarehouseOracle, form))
+        {
+            var operation = www.SendWebRequest();
+
+            while (!operation.isDone)
+            {
+                await Task.Yield();
+
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    Debug.Log("Task was cancelled.");
+                    www.Abort();
+                    return;
+                }
+            }
+
+            if (www.result != UnityWebRequest.Result.Success)
+            {
+                Debug.Log(www.error);
+            }
+            else
+            {
+                Debug.Log(www.downloadHandler.text);
+                callBack?.Invoke(www.downloadHandler.text);
+            }
+        }
+    }
+
+    public static async Task GetMenu_Id_Name_Blocked_IconOracle(CancellationToken cancellationToken, Action<string> callBack)
+    {
+        using (UnityWebRequest www = UnityWebRequest.Get(menuOracle))
+        {
+            var operation = www.SendWebRequest();
+
+            while (!operation.isDone)
+            {
+                await Task.Yield();
+
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    Debug.Log("Task was cancelled.");
+                    www.Abort();
+                    return;
+                }
+            }
+
+            if (www.result != UnityWebRequest.Result.Success)
+            {
+                Debug.Log(www.error);
+                Prompt.Instance.ShowTooltip(www.error);
+            }
+            else
+            {
+                Debug.Log(www.downloadHandler.text);
+                callBack?.Invoke(www.downloadHandler.text);
+            }
+        }
+    }
+
+    public static async Task UpdateBlockMenuOracle(string IdsBlock, string IdsUnblock, CancellationToken cancellationToken, Action<string> callBack)
+    {
+        WWWForm form = new WWWForm();
+        form.AddField("IdsBlock", IdsBlock);
+        form.AddField("IdsUnblock", IdsUnblock);
+
+        using (UnityWebRequest www = UnityWebRequest.Post(updateBlockMenuOracle, form))
+        {
+            var operation = www.SendWebRequest();
+
+            while (!operation.isDone)
+            {
+                await Task.Yield();
+
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    Debug.Log("Task was cancelled.");
+                    www.Abort();
+                    return;
+                }
+            }
+
+            if (www.result != UnityWebRequest.Result.Success)
+            {
+                Debug.Log(www.error);
+            }
+            else
+            {
+                Debug.Log(www.downloadHandler.text);
+                callBack?.Invoke(www.downloadHandler.text);
+            }
+        }
+    }
+
+    public static async Task GetOrdersDoneOracle(CancellationToken cancellationToken, Action<string> callBack)
+    {
+        using (UnityWebRequest www = UnityWebRequest.Get(getOrdersDoneOracle))
         {
             var operation = www.SendWebRequest();
 

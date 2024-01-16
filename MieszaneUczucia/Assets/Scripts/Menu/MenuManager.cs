@@ -86,6 +86,15 @@ public class MenuManager : MonoBehaviour
                 return;
             }
 
+            if (responseText.Contains("Warning"))
+            {
+                Prompt.Instance.ShowTooltip(responseText, () =>
+                {
+                    SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+                });
+                return;
+            }
+
             var menuItems = JsonConvert.DeserializeObject<List<MenuItemJsonData>>(responseText);
             MenuItemsData.Clear();
             foreach (var item in menuItems)

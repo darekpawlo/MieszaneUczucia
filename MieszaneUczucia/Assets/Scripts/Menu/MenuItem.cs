@@ -18,6 +18,9 @@ public class MenuItem : MonoBehaviour
         transform.Find("Price").GetComponent<TMP_Text>().text = data.Price.ToString("F");
         transform.Find("Description").GetComponent<TMP_Text>().text = data.Description;
         transform.Find("Icon").GetComponent<Image>().sprite = data.Icon;
+        transform.Find("Blocked").gameObject.SetActive(int.Parse(data.Blocked) == 1);
+
+        if (int.Parse(data.Blocked) == 1) return;
         transform.GetComponent<Button>().onClick.AddListener(() =>
         {
             itemPanel.gameObject.SetActive(true);

@@ -47,6 +47,11 @@ public class Login : MonoBehaviour
             string responseText = await tcs.Task;
             cancellationToken.ThrowIfCancellationRequested();
 
+            if(responseText.Contains("Warning"))
+            {
+                Prompt.Instance.ShowTooltip(responseText);
+            }
+
             if (responseText.Contains("Wrong credentials") || responseText.Contains("Username does not exist!"))
             {
                 Prompt.Instance.ShowTooltip(responseText);
@@ -99,6 +104,11 @@ public class Login : MonoBehaviour
                         {
                             Debug.Log("Admin");
                             SceneManager.LoadScene("AdminMenu");
+                        }
+                        else if (responseText.Contains("Pracownik"))
+                        {
+                            Debug.Log("Pracownik");
+                            SceneManager.LoadScene("WorkerMenu");
                         }
                     }
                 }
