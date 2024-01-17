@@ -8,7 +8,6 @@ using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using TMPro;
 using Newtonsoft.Json;
-using static UnityEditor.Progress;
 
 
 public class ManagerMenu : MonoBehaviour

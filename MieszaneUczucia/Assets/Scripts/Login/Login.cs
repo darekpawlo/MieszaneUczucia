@@ -71,6 +71,8 @@ public class Login : MonoBehaviour
                         {
                             loginPanel.gameObject.SetActive(false);
                             BasketManager.Instance.UpdateBottomBar();
+
+                            PlayerPrefs.SetString("ID_klienta", jsonData[0].ID);
                         });
                     }
                     // Pracownicy

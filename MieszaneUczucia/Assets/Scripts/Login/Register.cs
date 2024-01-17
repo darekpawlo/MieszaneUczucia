@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Threading;
 using System.Threading.Tasks;
+using UnityEngine.SceneManagement;
 
 public class Register : MonoBehaviour
 {
@@ -44,6 +45,7 @@ public class Register : MonoBehaviour
 
             if(!taskManager.IsTaskRunning)
             {
+                Prompt.Instance.ShowLoadingBar();
                 await CallWebAction();
             }
             else
@@ -51,6 +53,12 @@ public class Register : MonoBehaviour
                 Debug.Log("Registration already in progress");
             }
         });
+    }
+
+    public void GoToLogin()
+    {
+        taskManager.CancelCurrentTask();
+        SceneManager.LoadScene("Menu");
     }
 
     async Task CallWebAction()
@@ -80,7 +88,13 @@ public class Register : MonoBehaviour
                 else
                 {
                     Prompt.Instance.ShowTooltip("Rejestracja powiod³a siê");
-                }                                              
+                }
+
+                //string prefix = "Created user: ";
+                //int indexOfNumber = responseText.IndexOf(prefix) + prefix.Length;
+                //string numberString = responseText.Substring(indexOfNumber).Trim(); // Usuniêcie spacji na pocz¹tku i na koñcu, jeœli takie istniej¹
+
+                //PlayerPrefs.SetString("ID_klienta", numberString);
             }
         });
     }

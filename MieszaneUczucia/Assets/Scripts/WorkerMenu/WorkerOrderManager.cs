@@ -161,6 +161,7 @@ public class WorkerOrderManager : MonoBehaviour
                 {
                     ShowOrders();
                     detailedPanel.gameObject.SetActive(false);
+                    Notifications.SendCustomNotification("Status zamówienia", $"Zmieniono na {statusDropdown.options[statusDropdown.value].text}", activeOrder.ID_klienta);
                 });
             }
         });

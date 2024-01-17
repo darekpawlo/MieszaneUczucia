@@ -12,16 +12,20 @@ public class SalesManager : MonoBehaviour
     [SerializeField] Transform salesPanel;
     [SerializeField] Transform salesLayoutGroup;
     [SerializeField] Transform salesItem;
-    List<Transform> spawnedSalesItems = new List<Transform>();
+
+    Dictionary<string, SalesObject> sales = new Dictionary<string, SalesObject>();
 
     TaskManager taskManager = new TaskManager();
 
     public void SalesInit()
     {
-        if (spawnedSalesItems.Count > 0)
+        if (sales.Count > 0)
         {
-            spawnedSalesItems.ForEach(item => { Destroy(item.gameObject); });
-            spawnedSalesItems.Clear();
+            foreach (var item in sales)
+            {
+                Destroy(item.Value.Transform.gameObject);
+            }
+            sales.Clear();
         }
 
         Prompt.Instance.ShowLoadingBar();
@@ -31,10 +35,13 @@ public class SalesManager : MonoBehaviour
 
     public void RefreshSales()
     {
-        if (spawnedSalesItems.Count > 0)
+        if (sales.Count > 0)
         {
-            spawnedSalesItems.ForEach(item => { Destroy(item.gameObject); });
-            spawnedSalesItems.Clear();
+            foreach (var item in sales)
+            {
+                Destroy(item.Value.Transform.gameObject);
+            }
+            sales.Clear();
         }
 
         Prompt.Instance.ShowLoadingBar();
@@ -83,20 +90,57 @@ public class SalesManager : MonoBehaviour
                     var orderValues = JsonConvert.DeserializeObject<List<Order>>(order.Zamowione);
                     foreach (var value in orderValues)
                     {
-                        Debug.Log(value.MenuItem.Name);
+                        //Populating directory
+                        if(!sales.ContainsKey(value.MenuItem.Name))
+                        {
+                            sales.Add(value.MenuItem.Name, new SalesObject(Instantiate(salesItem, salesLayoutGroup.position, Quaternion.identity, salesLayoutGroup), value.MenuItem.Name, value.MenuItem.Amount, value.MenuItem.Price));
+                        }
+                        else if(sales.ContainsKey(value.MenuItem.Name))
+                        {
+                            sales[value.MenuItem.Name].IncreaseAmount(value.MenuItem.Amount);
+                            sales[value.MenuItem.Name].UpdateValues();
+                        }
                     }
-
-                    //var item = Instantiate(salesItem, salesLayoutGroup.position, Quaternion.identity, salesLayoutGroup);
-                    //item.gameObject.SetActive(true);
-                    //var info = item.transform.Find("Info").GetComponent<TMP_Text>();
-                    //var button = item.GetComponent<Button>();
-
-
-                    //spawnedSalesItems.Add(item);
                 }
 
                 Prompt.Instance.HideLoadingBar();
             }
         });
+    }
+}
+
+public class SalesObject
+{
+    public Transform Transform;
+    public string Name;
+    public int Amount;
+    public float Price;
+
+    public SalesObject(Transform transform, string name, int amount, float price)
+    {
+        Transform = transform;
+        Name = name;
+        Amount = amount;
+        Price = price;
+
+        transform.gameObject.SetActive(true);
+
+        UpdateValues();
+    }
+
+    public void IncreaseAmount(int amount)
+    {
+        Amount += amount;
+    }
+
+    public float GetTotalPrice => Price * Amount;
+
+    public void UpdateValues()
+    {
+        var info = Transform.Find("Info").GetComponent<TMP_Text>();
+
+        info.text = $"Danie: {Name} \n" +
+                    $"Zamówiono: {Amount} razy \n" +
+                    $"Zarobi³o: {GetTotalPrice}";
     }
 }
