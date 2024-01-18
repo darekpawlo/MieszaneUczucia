@@ -4,7 +4,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using Unity.VisualScripting;
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 
 public class AdminManager : MonoBehaviour
 {
@@ -25,8 +27,11 @@ public class AdminManager : MonoBehaviour
     [SerializeField] TMP_InputField nameInput;
     [SerializeField] TMP_InputField passwordInput;
     [SerializeField] TMP_InputField typeInput;
+    [SerializeField] TMP_Dropdown confTypeDropdown;
     List<Transform> spawnedWorkers = new List<Transform>();
     Employee activeWorker;
+
+    TaskManager taskManager = new TaskManager();
 
     private void Awake()
     {
@@ -38,58 +43,26 @@ public class AdminManager : MonoBehaviour
         AddAccountPanel.gameObject.SetActive(false);
         ConfigureAccountsPanel.gameObject.SetActive(true);
 
-        StartCoroutine(WebActions.AllWorkersOracle((jsonString) =>
+        foreach (var workerObject in spawnedWorkers)
         {
-            foreach (var workerObject in spawnedWorkers)
-            {
-                Destroy(workerObject.gameObject);
-            }
-            spawnedWorkers.Clear();
+            Destroy(workerObject.gameObject);
+        }
+        spawnedWorkers.Clear();
 
-            var workersList = JsonConvert.DeserializeObject<List<Employee>>(jsonString);
-            foreach (var worker in workersList)
-            {
-                var workerPrefab = workerLayoutGroup.GetChild(0);
-                var workerObject = Instantiate(workerPrefab, workerPrefab.transform.position, Quaternion.identity, workerLayoutGroup);
-                var text = workerObject.GetChild(0).GetComponent<TMP_Text>();
-                workerObject.gameObject.SetActive(true);
-
-                text.SetText($"" +
-                    $"ID: {worker.Id}, Type: {worker.Type} \n" +
-                    $"Name: {worker.Name} \n" +
-                    $"Password: {worker.Password} \n" +                 
-                    $"");
-                workerObject.GetComponent<Button>().onClick.AddListener(() =>
-                {
-                    nameInput.text = worker.Name;
-                    passwordInput.text = worker.Password;
-                    typeInput.text = worker.Type;
-
-                    activeWorker = worker;
-                    configurationPanel.gameObject.SetActive(true);
-                });
-
-                spawnedWorkers.Add(workerObject);
-            }
-        }));        
+        Prompt.Instance.ShowLoadingBar();
+        CallWebGetWorkers();  
     }
 
     public void UpdateWorker()
     {
-        StartCoroutine(WebActions.UpdateWorkerOracle(activeWorker.Id, nameInput.text, passwordInput.text, typeInput.text, (webText) =>
-        {
-            configurationPanel.gameObject.SetActive(false);
-            ShowAccounts();
-        }));
+        Prompt.Instance.ShowLoadingBar();
+        CallWebUpdateWorker();
     }
 
     public void DeleteWorker()
     {
-        StartCoroutine(WebActions.DeleteWorkerOracle(activeWorker.Id, (webText) =>
-        {
-            configurationPanel.gameObject.SetActive(false);
-            ShowAccounts();
-        }));
+        Prompt.Instance.ShowLoadingBar();
+        CallWebDeleteWorker();
     }
 
     public void AddAccount()
@@ -102,10 +75,12 @@ public class AdminManager : MonoBehaviour
             if (loginInput.text == string.Empty || passInput.text == string.Empty)
             {
                 Debug.Log("Fill all fields");
+                Prompt.Instance.ShowTooltip("Uzupe³nij wszystkie pola!");
                 return;
             }
 
-            StartCoroutine(WebActions.RegisterWorkerOracle(loginInput.text, passInput.text, typeDropdown.options[typeDropdown.value].text));
+            Prompt.Instance.ShowLoadingBar();
+            CallWebRegisterWorker();
         });
     }
 
@@ -113,6 +88,205 @@ public class AdminManager : MonoBehaviour
     {
         AddAccountPanel.gameObject.SetActive(false);
         ConfigureAccountsPanel.gameObject.SetActive(false);
+    }
+
+    async void CallWebRegisterWorker()
+    {
+        await taskManager.RunTaskAsync(async cancellationToken =>
+        {
+            var tcs = new TaskCompletionSource<string>();
+
+            // Handle cancellation
+            using (cancellationToken.Register(() => tcs.TrySetCanceled()))
+            {
+                await WebActions.RegisterWorkerOracleAsync(loginInput.text, passInput.text, typeDropdown.options[typeDropdown.value].text, cancellationToken, (text) =>
+                {
+                    tcs.SetResult(text);
+                });
+
+                string responseText;
+                try
+                {
+                    responseText = await tcs.Task;
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
+                catch (OperationCanceledException)
+                {
+                    Debug.Log("Operation was cancelled.");
+                    return; // Early exit if the operation is cancelled
+                }
+
+                if (responseText.Contains("error"))
+                {
+                    Prompt.Instance.ShowTooltip(responseText, () =>
+                    {
+                        //AddAccountPanel.gameObject.SetActive(false);
+                        loginInput.text = "";
+                        passInput.text = "";
+                    });
+                    return;
+                }
+
+                Prompt.Instance.ShowTooltip(responseText);
+            }
+        });
+    }
+    async void CallWebGetWorkers()
+    {
+        await taskManager.RunTaskAsync(async cancellationToken =>
+        {
+            var tcs = new TaskCompletionSource<string>();
+
+            // Handle cancellation
+            using (cancellationToken.Register(() => tcs.TrySetCanceled()))
+            {
+                await WebActions.AllWorkersOracleAsync(cancellationToken, (text) =>
+                {
+                    tcs.SetResult(text);
+                });
+
+                string responseText;
+                try
+                {
+                    responseText = await tcs.Task;
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
+                catch (OperationCanceledException)
+                {
+                    Debug.Log("Operation was cancelled.");
+                    return; // Early exit if the operation is cancelled
+                }
+
+                if (responseText.Contains("error"))
+                {
+                    Prompt.Instance.ShowTooltip(responseText, () =>
+                    {
+                        
+                    });
+                    return;
+                }
+
+                var workersList = JsonConvert.DeserializeObject<List<Employee>>(responseText);
+                foreach (var worker in workersList)
+                {
+                    var workerPrefab = workerLayoutGroup.GetChild(0);
+                    var workerObject = Instantiate(workerPrefab, workerPrefab.transform.position, Quaternion.identity, workerLayoutGroup);
+                    var text = workerObject.GetChild(0).GetComponent<TMP_Text>();
+                    workerObject.gameObject.SetActive(true);
+
+                    text.SetText($"" +
+                        $"ID: {worker.Id}, Typ: {worker.Type} \n" +
+                        $"Login: {worker.Name} \n" +
+                        //$"Password: {worker.Password} \n" +                 
+                        $"");
+                    workerObject.GetComponent<Button>().onClick.AddListener(() =>
+                    {
+                        nameInput.text = worker.Name;
+                        passwordInput.text = worker.Password;
+                        if(worker.Type.Contains("Pracownik"))
+                        {
+                            confTypeDropdown.value = 0;
+                        }
+                        else if(worker.Type.Contains("Menedzer"))
+                        {
+                            confTypeDropdown.value = 1;
+                        }
+                        else if(worker.Type.Contains("Admin"))
+                        {
+                            confTypeDropdown.value = 2;
+                        }
+                        //typeInput.text = worker.Type;
+
+                        activeWorker = worker;
+                        configurationPanel.gameObject.SetActive(true);
+                    });
+
+                    spawnedWorkers.Add(workerObject);
+                }
+
+                Prompt.Instance.HideLoadingBar();
+            }
+        });
+    }
+    async void CallWebUpdateWorker()
+    {
+        await taskManager.RunTaskAsync(async cancellationToken =>
+        {
+            var tcs = new TaskCompletionSource<string>();
+
+            // Handle cancellation
+            using (cancellationToken.Register(() => tcs.TrySetCanceled()))
+            {
+                await WebActions.UpdateWorkerOracleAsync(activeWorker.Id, nameInput.text, passwordInput.text, confTypeDropdown.options[confTypeDropdown.value].text, cancellationToken, (text) =>
+                {
+                    tcs.SetResult(text);
+                });
+
+                string responseText;
+                try
+                {
+                    responseText = await tcs.Task;
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
+                catch (OperationCanceledException)
+                {
+                    Debug.Log("Operation was cancelled.");
+                    return; // Early exit if the operation is cancelled
+                }
+
+                if (responseText.Contains("error"))
+                {
+                    Prompt.Instance.ShowTooltip(responseText);
+                    return;
+                }
+
+                Prompt.Instance.ShowTooltip(responseText, () =>
+                {
+                    configurationPanel.gameObject.SetActive(false);
+                    ShowAccounts();
+                });
+            }
+        });
+    }
+    async void CallWebDeleteWorker()
+    {
+        await taskManager.RunTaskAsync(async cancellationToken =>
+        {
+            var tcs = new TaskCompletionSource<string>();
+
+            // Handle cancellation
+            using (cancellationToken.Register(() => tcs.TrySetCanceled()))
+            {
+                await WebActions.DeleteWorkerOracleAsync(activeWorker.Id, cancellationToken, (text) =>
+                {
+                    tcs.SetResult(text);
+                });
+
+                string responseText;
+                try
+                {
+                    responseText = await tcs.Task;
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
+                catch (OperationCanceledException)
+                {
+                    Debug.Log("Operation was cancelled.");
+                    return; // Early exit if the operation is cancelled
+                }
+
+                if (responseText.Contains("error"))
+                {
+                    Prompt.Instance.ShowTooltip(responseText);
+                    return;
+                }
+
+                Prompt.Instance.ShowTooltip(responseText, () =>
+                {
+                    configurationPanel.gameObject.SetActive(false);
+                    ShowAccounts();
+                });
+            }
+        });
     }
 
     public struct Employee

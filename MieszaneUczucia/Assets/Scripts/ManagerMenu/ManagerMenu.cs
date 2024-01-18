@@ -84,12 +84,30 @@ public class ManagerMenu : MonoBehaviour
     }
     public void CreateMenuItem()
     {
-        StartCoroutine(WebActions.InsertMenuOracle(nameInput.text, priceInput.text, blockedDropdown.value.ToString(), descriptionInput.text, ImageManager.TextureToString(iconTexture), (text) =>
+        //StartCoroutine(WebActions.InsertMenuOracle(nameInput.text, priceInput.text, blockedDropdown.value.ToString(), descriptionInput.text, ImageManager.TextureToString(iconTexture), (text) =>
+        //{
+        //    ShowMenu();
+        //    configureMenuPanel.gameObject.SetActive(true);
+        //    addItemPanel.gameObject.SetActive(false);
+        //}));
+
+        if (nameInput.text == string.Empty)
         {
-            ShowMenu();
-            configureMenuPanel.gameObject.SetActive(true);
-            addItemPanel.gameObject.SetActive(false);
-        }));
+            Prompt.Instance.ShowTooltip("Wype³nij wszystkie pola!");
+            return;
+        }
+        if (priceInput.text == string.Empty)
+        {
+            Prompt.Instance.ShowTooltip("Wype³nij wszystkie pola!");
+            return;
+        }
+        if (descriptionInput.text == string.Empty)
+        {
+            Prompt.Instance.ShowTooltip("Wype³nij wszystkie pola!");
+            return;
+        }
+        Prompt.Instance.ShowLoadingBar();
+        CallWebActionInsertMenu();
     }
 
     public void ConfigurationInit()
@@ -117,6 +135,237 @@ public class ManagerMenu : MonoBehaviour
         CallWebActionInsert();
     }
 
+    public void Home()
+    {
+        SceneManager.LoadScene("Menu");
+    }
+
+    
+
+    public void ShowMenu()
+    {
+        foreach (MenuItem item in activeMenuItems)
+        {
+            Destroy(item.gameObject);
+        }
+        activeMenuItems.Clear();
+
+        Prompt.Instance.ShowLoadingBar();
+        CallWebActionGetMenu();
+    }
+
+    public void DeleteItem()
+    {
+        //StartCoroutine(WebActions.DeleteMenuOracle(activeItemData.Id, (text) =>
+        //{
+        //    itemPanel.gameObject.SetActive(false);
+        //    ShowMenu();
+        //}));
+
+        Prompt.Instance.ShowLoadingBar();
+        CallWebActionDeleteMenu();
+    }
+
+    public void UpdateItem()
+    {
+        //StartCoroutine(WebActions.UpdateMenuOracle(activeItemData.Id, itemNameInput.text, itemPriceInput.text, itemBlockedDropdown.value.ToString(), itemDescriptionInput.text, ImageManager.TextureToString(iconTexture), (text) =>
+        //{
+        //    itemPanel.gameObject.SetActive(false);
+        //    ShowMenu();
+        //}));
+
+        if(itemNameInput.text == string.Empty)
+        {
+            Prompt.Instance.ShowTooltip("Wype³nij wszystkie pola!");
+            return;
+        }
+        if (itemPriceInput.text == string.Empty)
+        {
+            Prompt.Instance.ShowTooltip("Wype³nij wszystkie pola!");
+            return;
+        }
+        if (itemDescriptionInput.text == string.Empty)
+        {
+            Prompt.Instance.ShowTooltip("Wype³nij wszystkie pola!");
+            return;
+        }
+
+        Prompt.Instance.ShowLoadingBar();
+        CallWebActionUpdateMenu();
+    }
+    public void MenuScene()
+    {
+        SceneManager.LoadScene("Menu");
+    }
+
+    public void ConfConfigurationInit()
+    {
+        if (spawnedConfigurationItems.Count > 0) spawnedConfigurationItems.ForEach(item => { Destroy(item.gameObject); });
+        spawnedConfigurationItems.Clear();
+
+        Prompt.Instance.ShowLoadingBar();
+        if (!taskManager.IsTaskRunning) CallWebActionGetConfiguration();
+    }
+
+    public void DeleteConf()
+    {
+        Prompt.Instance.ShowLoadingBar();
+        CallWebActionDeleteConfiguration(activeConfiguration.ID_opcji);
+    }
+
+    public void UpdateConf()
+    {
+        Prompt.Instance.ShowLoadingBar();
+        CallWebActionUpdateConfiguration(activeConfiguration.ID_opcji);
+    }
+
+    async void CallWebActionGetMenu()
+    {
+        await taskManager.RunTaskAsync(async cancellationToken =>
+        {
+            var tcs = new TaskCompletionSource<string>();
+
+            // Handle cancellation
+            using (cancellationToken.Register(() => tcs.TrySetCanceled()))
+            {
+                await WebActions.GetMenuOracleAsync(cancellationToken, (text) =>
+                {
+                    tcs.SetResult(text);
+                });
+
+                string responseText;
+                try
+                {
+                    responseText = await tcs.Task;
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
+                catch (OperationCanceledException)
+                {
+                    Debug.Log("Operation was cancelled.");
+                    return; // Early exit if the operation is cancelled
+                }
+
+                if (responseText.Contains("error"))
+                {
+                    Prompt.Instance.ShowTooltip(responseText, () =>
+                    {
+                        configureMenuPanel.gameObject.SetActive(false);
+                    });
+                    return;
+                }
+
+                var menuItems = JsonConvert.DeserializeObject<List<MenuItemJsonData>>(responseText);
+                for (int i = 0; i < menuItems.Count; i++)
+                {
+                    var item = menuItems[i];
+                    var data = new MenuItemData(item.Id, item.Name, item.Description, 0.ToString(), item.Price, ImageManager.BytesToSprite(Convert.FromBase64String(item.Icon)));
+                    var menuItem = Instantiate(menuItemPrefab, transform.position, Quaternion.identity, menuItemHolder);
+                    activeMenuItems.Add(menuItem);
+
+                    //Wywo³anie item panel
+                    menuItem.Init(data, itemPanel, (itemData) =>
+                    {
+                        itemNameInput.text = item.Name;
+                        itemPriceInput.text = item.Price;
+                        itemDescriptionInput.text = item.Description;
+                        itemBlockedDropdown.value = item.Blocked == "0" ? 0 : 1;
+                        itemIcon.sprite = itemData.Icon;
+                        iconTexture = ImageManager.SpriteToTexture(itemData.Icon);
+
+                        activeItemData = itemData;
+                    });
+                }
+
+                Prompt.Instance.HideLoadingBar();
+            }
+        });
+    }
+    async void CallWebActionUpdateMenu()
+    {
+        await taskManager.RunTaskAsync(async cancellationToken =>
+        {
+            var tcs = new TaskCompletionSource<string>();
+
+            // Handle cancellation
+            using (cancellationToken.Register(() => tcs.TrySetCanceled()))
+            {
+                await WebActions.UpdateMenuOracleAsync(activeItemData.Id, itemNameInput.text, itemPriceInput.text, itemBlockedDropdown.value.ToString(), itemDescriptionInput.text, ImageManager.TextureToString(iconTexture), cancellationToken, (text) =>
+                {
+                    tcs.SetResult(text);
+                });
+
+                string responseText;
+                try
+                {
+                    responseText = await tcs.Task;
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
+                catch (OperationCanceledException)
+                {
+                    Debug.Log("Operation was cancelled.");
+                    return; // Early exit if the operation is cancelled
+                }
+
+                if (responseText.Contains("error"))
+                {
+                    Prompt.Instance.ShowTooltip(responseText, () =>
+                    {
+                        itemPanel.gameObject.SetActive(false);
+                    });
+                    return;
+                }
+
+                Prompt.Instance.ShowTooltip(responseText, () =>
+                {
+                    itemPanel.gameObject.SetActive(false);
+                    ShowMenu();
+                });
+            }
+        });
+    }
+    async void CallWebActionDeleteMenu()
+    {
+        await taskManager.RunTaskAsync(async cancellationToken =>
+        {
+            var tcs = new TaskCompletionSource<string>();
+
+            // Handle cancellation
+            using (cancellationToken.Register(() => tcs.TrySetCanceled()))
+            {
+                await WebActions.DeleteMenuOracleAsync(activeItemData.Id, cancellationToken, (text) =>
+                {
+                    tcs.SetResult(text);
+                });
+
+                string responseText;
+                try
+                {
+                    responseText = await tcs.Task;
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
+                catch (OperationCanceledException)
+                {
+                    Debug.Log("Operation was cancelled.");
+                    return; // Early exit if the operation is cancelled
+                }
+
+                if (responseText.Contains("error"))
+                {
+                    Prompt.Instance.ShowTooltip(responseText, () =>
+                    {
+                        itemPanel.gameObject.SetActive(false);
+                    });
+                    return;
+                }
+
+                Prompt.Instance.ShowTooltip(responseText, () =>
+                {
+                    itemPanel.gameObject.SetActive(false);
+                    ShowMenu();
+                });
+            }
+        });
+    }
     async void CallWebActionInsert()
     {
         await taskManager.RunTaskAsync(async cancellationToken =>
@@ -176,8 +425,6 @@ public class ManagerMenu : MonoBehaviour
             }
         });
     }
-
-
     async void CallWebActionGet()
     {
         await taskManager.RunTaskAsync(async cancellationToken =>
@@ -225,7 +472,6 @@ public class ManagerMenu : MonoBehaviour
             }
         });
     }
-
     async void CallWebActionGetConfiguration()
     {
         await taskManager.RunTaskAsync(async cancellationToken =>
@@ -287,7 +533,6 @@ public class ManagerMenu : MonoBehaviour
             }
         });
     }
-
     async void CallWebActionGetConfigurationMenuItems(string id)
     {
         if (spawnedItemToConfigure.Count > 0) spawnedItemToConfigure.ForEach(item => { Destroy(item.gameObject); });
@@ -324,7 +569,7 @@ public class ManagerMenu : MonoBehaviour
                 }
 
                 ConfigurationMenuItemsJson item = JsonConvert.DeserializeObject<ConfigurationMenuItemsJson>(responseText);
-                
+
                 foreach (var related in item.related)
                 {
                     var spawnedItem = Instantiate(itemToConfigure, specificConfLayoutGroup.position, Quaternion.identity, specificConfLayoutGroup.transform);
@@ -359,7 +604,6 @@ public class ManagerMenu : MonoBehaviour
             }
         });
     }
-
     async void CallWebActionDeleteConfiguration(string idOpcji)
     {
         if (spawnedItemToConfigure.Count > 0) spawnedItemToConfigure.ForEach(item => { Destroy(item.gameObject); });
@@ -403,7 +647,6 @@ public class ManagerMenu : MonoBehaviour
             }
         });
     }
-
     async void CallWebActionUpdateConfiguration(string idOpcji)
     {
         string IdPozycjiDodaj = "";
@@ -467,80 +710,55 @@ public class ManagerMenu : MonoBehaviour
             }
         });
     }
-
-    public void ShowMenu()
+    async void CallWebActionInsertMenu()
     {
-        foreach (MenuItem item in activeMenuItems)
+        await taskManager.RunTaskAsync(async cancellationToken =>
         {
-            Destroy(item.gameObject);
-        }
-        activeMenuItems.Clear();
+            var tcs = new TaskCompletionSource<string>();
 
-        StartCoroutine(WebActions.GetMenuOracle((menuItemJson) =>
-        {
-            var menuItems = JsonConvert.DeserializeObject<List<MenuItemJsonData>>(menuItemJson);
-            for (int i = 0; i < menuItems.Count; i++)
+            // Handle cancellation
+            using (cancellationToken.Register(() => tcs.TrySetCanceled()))
             {
-                var item = menuItems[i];
-                var data = new MenuItemData(item.Id, item.Name, item.Description, item.Blocked, item.Price, ImageManager.BytesToSprite(Convert.FromBase64String(item.Icon)));
-                var menuItem = Instantiate(menuItemPrefab, transform.position, Quaternion.identity, menuItemHolder);
-                activeMenuItems.Add(menuItem);
-
-                menuItem.Init(data, itemPanel, (itemData) =>
+                await WebActions.InsertMenuOracleAsync(nameInput.text, priceInput.text, blockedDropdown.value.ToString(), descriptionInput.text, ImageManager.TextureToString(iconTexture), cancellationToken, (text) =>
                 {
-                    itemNameInput.text = item.Name;
-                    itemPriceInput.text = item.Price;
-                    itemDescriptionInput.text = item.Description;
-                    itemBlockedDropdown.value = item.Blocked == "0" ? 0 : 1;
-                    itemIcon.sprite = itemData.Icon;
-
-                    activeItemData = itemData;
+                    tcs.SetResult(text);
                 });
+
+                string responseText;
+                try
+                {
+                    responseText = await tcs.Task;
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
+                catch (OperationCanceledException)
+                {
+                    Debug.Log("Operation was cancelled.");
+                    return; // Early exit if the operation is cancelled
+                }
+
+                if (responseText.Contains("Error"))
+                {
+                    Prompt.Instance.ShowTooltip(responseText, () =>
+                    {
+                        addItemPanel.gameObject.SetActive(false);
+                    });
+                }
+                else
+                {
+                    Prompt.Instance.ShowTooltip(responseText, () =>
+                    {
+                        ShowMenu();
+                        configureMenuPanel.gameObject.SetActive(true);
+                        addItemPanel.gameObject.SetActive(false);
+
+                        nameInput.text = "";
+                        priceInput.text = "";
+                        descriptionInput.text = "";
+
+                    });
+                }
             }
-        }));
-    }
-
-    public void DeleteItem()
-    {
-        StartCoroutine(WebActions.DeleteMenuOracle(activeItemData.Id, (text) =>
-        {
-            itemPanel.gameObject.SetActive(false);
-            ShowMenu();
-        }));
-    }
-
-    public void UpdateItem()
-    {
-        StartCoroutine(WebActions.UpdateMenuOracle(activeItemData.Id, itemNameInput.text, itemPriceInput.text, itemBlockedDropdown.value.ToString(), itemDescriptionInput.text, ImageManager.TextureToString(iconTexture), (text) =>
-        {
-            itemPanel.gameObject.SetActive(false);
-            ShowMenu();
-        }));
-    }
-    public void MenuScene()
-    {
-        SceneManager.LoadScene("Menu");
-    }
-
-    public void ConfConfigurationInit()
-    {
-        if (spawnedConfigurationItems.Count > 0) spawnedConfigurationItems.ForEach(item => { Destroy(item.gameObject); });
-        spawnedConfigurationItems.Clear();
-
-        Prompt.Instance.ShowLoadingBar();
-        if (!taskManager.IsTaskRunning) CallWebActionGetConfiguration();
-    }
-
-    public void DeleteConf()
-    {
-        Prompt.Instance.ShowLoadingBar();
-        CallWebActionDeleteConfiguration(activeConfiguration.ID_opcji);
-    }
-
-    public void UpdateConf()
-    {
-        Prompt.Instance.ShowLoadingBar();
-        CallWebActionUpdateConfiguration(activeConfiguration.ID_opcji);
+        });
     }
 }
 

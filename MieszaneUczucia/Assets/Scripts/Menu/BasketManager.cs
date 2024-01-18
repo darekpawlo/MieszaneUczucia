@@ -209,17 +209,18 @@ public class BasketManager : MonoBehaviour
             PlayerPrefs.SetInt("KodPocztowy", int.Parse(postalCode.text));
             PlayerPrefs.SetString("Miasto", city.text);
             PlayerPrefs.SetString("Ulica", road.text);
-        }      
 
-        if(int.Parse(postalCode.text) != 59600 && orderType.value != 0)
-        {
-            Prompt.Instance.ShowTooltip("Przepraszamy, ale ten rejon nie jest jeszcze obs³ugiwany przez nasz¹ restauracjê!");
-            return;
-        }
+            if (int.Parse(postalCode.text) != 59600)
+            {
+                Prompt.Instance.ShowTooltip("Przepraszamy, ale ten rejon nie jest jeszcze obs³ugiwany przez nasz¹ restauracjê!");
+                return;
+            }
+        }      
 
         if(taskManager.IsTaskRunning)
         {
             Debug.Log("Task is already running!");
+            Prompt.Instance.ShowTooltip("Akcja jest ju¿ wykonywana!");
             return;
         }
 

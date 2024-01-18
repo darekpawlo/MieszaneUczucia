@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using TMPro;
+using UnityEngine.Video;
 
 public class Prompt : MonoBehaviour, IPointerClickHandler
 {

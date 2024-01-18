@@ -33,6 +33,16 @@ public class WarehourseManager : MonoBehaviour
 
     public void AddWarehouseRecord()
     {
+        if(nameInput.text == string.Empty)
+        {
+            Prompt.Instance.ShowTooltip("Wype³nij wszystkie pola!");
+            return;
+        }
+        if (amountInput.text == string.Empty)
+        {
+            Prompt.Instance.ShowTooltip("Wype³nij wszystkie pola!");
+            return;
+        }
         Prompt.Instance.ShowLoadingBar();
         CallWebInsertWarehouse();
     }    

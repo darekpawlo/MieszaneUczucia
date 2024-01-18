@@ -23,36 +23,36 @@ public class Register : MonoBehaviour
 
     private void Start()
     {
-        registerButton.onClick.AddListener(async () =>
-        {
-            if(passInput.text != confirmInput.text)
-            {
-                Prompt.Instance.ShowTooltip("Passwords don't match");
-                return;
-            }
+        //registerButton.onClick.AddListener(async () =>
+        //{
+        //    if(passInput.text != confirmInput.text)
+        //    {
+        //        Prompt.Instance.ShowTooltip("Passwords don't match");
+        //        return;
+        //    }
 
-            if (phoneInput.text.Length > 9 || phoneInput.text.Length < 9)
-            {
-                Prompt.Instance.ShowTooltip("Not correct phone number");
-                return;
-            }
+        //    if (phoneInput.text.Length > 9 || phoneInput.text.Length < 9)
+        //    {
+        //        Prompt.Instance.ShowTooltip("Not correct phone number");
+        //        return;
+        //    }
 
-            if (userInput.text == string.Empty || passInput.text == string.Empty || confirmInput.text == string.Empty || phoneInput.text == string.Empty)
-            {
-                Prompt.Instance.ShowTooltip("Not all fields are filled");
-                return;
-            }
+        //    if (userInput.text == string.Empty || passInput.text == string.Empty || confirmInput.text == string.Empty || phoneInput.text == string.Empty)
+        //    {
+        //        Prompt.Instance.ShowTooltip("Not all fields are filled");
+        //        return;
+        //    }
 
-            if(!taskManager.IsTaskRunning)
-            {
-                Prompt.Instance.ShowLoadingBar();
-                await CallWebAction();
-            }
-            else
-            {
-                Debug.Log("Registration already in progress");
-            }
-        });
+        //    if(!taskManager.IsTaskRunning)
+        //    {
+        //        Prompt.Instance.ShowLoadingBar();
+        //        CallWebAction();
+        //    }
+        //    else
+        //    {
+        //        Debug.Log("Registration already in progress");
+        //    }
+        //});
     }
 
     public void GoToLogin()
@@ -61,7 +61,38 @@ public class Register : MonoBehaviour
         SceneManager.LoadScene("Menu");
     }
 
-    async Task CallWebAction()
+    public void RegisterAccount()
+    {
+        if (passInput.text != confirmInput.text)
+        {
+            Prompt.Instance.ShowTooltip("Has³a nie sa takie same");
+            return;
+        }
+
+        if (phoneInput.text.Length > 9 || phoneInput.text.Length < 9)
+        {
+            Prompt.Instance.ShowTooltip("Niepoprawny numer telefonu");
+            return;
+        }
+
+        if (userInput.text == string.Empty || passInput.text == string.Empty || confirmInput.text == string.Empty || phoneInput.text == string.Empty)
+        {
+            Prompt.Instance.ShowTooltip("Wype³nij wszystkie pola");
+            return;
+        }
+
+        if (!taskManager.IsTaskRunning)
+        {
+            Prompt.Instance.ShowLoadingBar();
+            CallWebAction();
+        }
+        else
+        {
+            Debug.Log("Registration already in progress");
+        }
+    }
+
+    async void CallWebAction()
     {
         taskManager.CancelCurrentTask();
 

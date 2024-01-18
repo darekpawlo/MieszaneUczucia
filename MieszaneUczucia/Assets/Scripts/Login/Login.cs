@@ -23,6 +23,7 @@ public class Login : MonoBehaviour
     {
         loginButton.onClick.AddListener(() =>
         {
+            Prompt.Instance.ShowLoadingBar();
             CallWebAction();
         });
 
@@ -73,6 +74,7 @@ public class Login : MonoBehaviour
                             BasketManager.Instance.UpdateBottomBar();
 
                             PlayerPrefs.SetString("ID_klienta", jsonData[0].ID);
+                            Debug.Log($"{PlayerPrefs.HasKey("ID_klienta")},{PlayerPrefs.GetString("ID_klienta")}");
                         });
                     }
                     // Pracownicy
@@ -101,16 +103,19 @@ public class Login : MonoBehaviour
                         {
                             Debug.Log("Menedzer");
                             SceneManager.LoadScene("ManagerMenu");
+                            Prompt.Instance.HideLoadingBar();
                         }
                         else if (responseText.Contains("Admin"))
                         {
                             Debug.Log("Admin");
                             SceneManager.LoadScene("AdminMenu");
+                            Prompt.Instance.HideLoadingBar();
                         }
                         else if (responseText.Contains("Pracownik"))
                         {
                             Debug.Log("Pracownik");
                             SceneManager.LoadScene("WorkerMenu");
+                            Prompt.Instance.HideLoadingBar();
                         }
                     }
                 }

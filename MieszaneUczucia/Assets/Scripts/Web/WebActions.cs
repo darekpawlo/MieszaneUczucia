@@ -16,8 +16,9 @@ public static class WebActions
 
     static string swiatolowod = "192.168.1.21";
     static string router = "192.168.8.108";
+    static string mati = "77.255.25.250";
 
-    public static string uzywaneIP = swiatolowod;
+    public static string uzywaneIP = mati;
     static string baseUrl = $"http://{uzywaneIP}/UnityBackendTutorial/";
 
     static string menuOracle = $"{baseUrl}GetMenuOracle.php";
@@ -49,6 +50,7 @@ public static class WebActions
     static string getBlockMenuOracle = $"{baseUrl}GetMenuOracle_Id_Name_Blocked_Icon.php";        
     static string updateBlockMenuOracle = $"{baseUrl}UpdateBlockMenuOracle.php";        
     static string getOrdersDoneOracle = $"{baseUrl}GetOrdersDoneOracle.php";        
+    static string getOrdersStatusOracle = $"{baseUrl}GetOrdersStatusOracle.php";        
 
     public static IEnumerator GetMenuOracle(Action<string> callBack)
     {
@@ -238,6 +240,36 @@ public static class WebActions
         }
     }
 
+    public static async Task AllWorkersOracleAsync(CancellationToken cancellationToken, Action<string> callBack)
+    {
+        using (UnityWebRequest www = UnityWebRequest.Get(workersOracle))
+        {
+            var operation = www.SendWebRequest();
+
+            while (!operation.isDone)
+            {
+                await Task.Yield();
+
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    Debug.Log("Task was cancelled.");
+                    www.Abort();
+                    return;
+                }
+            }
+
+            if (www.result != UnityWebRequest.Result.Success)
+            {
+                Debug.Log(www.error);
+            }
+            else
+            {
+                Debug.Log(www.downloadHandler.text);
+                callBack?.Invoke(www.downloadHandler.text);
+            }
+        }
+    }
+
     public static IEnumerator RegisterWorkerOracle(string username, string password, string type)
     {
         WWWForm form = new WWWForm();
@@ -260,7 +292,50 @@ public static class WebActions
         {
             Debug.Log(www.downloadHandler.text);
 
-            SceneManager.LoadScene("AdminMenu");
+            Prompt.Instance.ShowTooltip(www.downloadHandler.text, () =>
+            {
+                SceneManager.LoadScene("AdminMenu");
+            });            
+        }
+    }
+
+    public static async Task RegisterWorkerOracleAsync(string username, string password, string type, CancellationToken cancellationToken, Action<string> callBack)
+    {
+        WWWForm form = new WWWForm();
+        form.AddField("Nazwa", username);
+        form.AddField("Pass", password);
+        form.AddField("Type", type);
+
+        using (UnityWebRequest www = UnityWebRequest.Post(registerWorkerOracle, form))
+        {
+            var operation = www.SendWebRequest();
+
+            while (!operation.isDone)
+            {
+                await Task.Yield();
+
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    Debug.Log("Task was cancelled.");
+                    www.Abort();
+                    return;
+                }
+            }
+
+            if (www.result != UnityWebRequest.Result.Success)
+            {
+                Debug.Log(www.error);
+                Prompt.Instance.ShowTooltip($"Error: {www.error}");
+            }
+            else if (www.downloadHandler.text.Contains("Pracownik ju¿ istnieje!"))
+            {
+                Prompt.Instance.ShowTooltip(www.downloadHandler.text);
+            }
+            else
+            {
+                Debug.Log(www.downloadHandler.text);
+                callBack?.Invoke(www.downloadHandler.text);
+            }
         }
     }
 
@@ -287,6 +362,42 @@ public static class WebActions
         }
     }
 
+    public static async Task UpdateWorkerOracleAsync(string id, string username, string haslo, string type, CancellationToken cancellationToken, Action<string> callBack)
+    {
+        WWWForm form = new WWWForm();
+        form.AddField("Id", id);
+        form.AddField("Nazwa", username);
+        form.AddField("Haslo", haslo);
+        form.AddField("Typ", type);
+
+        using (UnityWebRequest www = UnityWebRequest.Post(updateWorkerOracle, form))
+        {
+            var operation = www.SendWebRequest();
+
+            while (!operation.isDone)
+            {
+                await Task.Yield();
+
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    Debug.Log("Task was cancelled.");
+                    www.Abort();
+                    return;
+                }
+            }
+
+            if (www.result != UnityWebRequest.Result.Success)
+            {
+                Debug.Log(www.error);
+            }
+            else
+            {
+                Debug.Log(www.downloadHandler.text);
+                callBack?.Invoke(www.downloadHandler.text);
+            }
+        }
+    }
+
     public static IEnumerator DeleteWorkerOracle(string id, Action<string> callBack)
     {
         WWWForm form = new WWWForm();
@@ -304,6 +415,39 @@ public static class WebActions
             Debug.Log(www.downloadHandler.text);
 
             callBack?.Invoke(www.downloadHandler.text);
+        }
+    }
+
+    public static async Task DeleteWorkerOracleAsync(string id, CancellationToken cancellationToken, Action<string> callBack)
+    {
+        WWWForm form = new WWWForm();
+        form.AddField("Id", id);
+
+        using (UnityWebRequest www = UnityWebRequest.Post(deleteWorkerOracle, form))
+        {
+            var operation = www.SendWebRequest();
+
+            while (!operation.isDone)
+            {
+                await Task.Yield();
+
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    Debug.Log("Task was cancelled.");
+                    www.Abort();
+                    return;
+                }
+            }
+
+            if (www.result != UnityWebRequest.Result.Success)
+            {
+                Debug.Log(www.error);
+            }
+            else
+            {
+                Debug.Log(www.downloadHandler.text);
+                callBack?.Invoke(www.downloadHandler.text);
+            }
         }
     }
 
@@ -327,6 +471,42 @@ public static class WebActions
         {
             Debug.Log(www.downloadHandler.text);
             callBack?.Invoke(www.downloadHandler.text);
+        }
+    }
+    public static async Task InsertMenuOracleAsync(string name, string price, string blocked, string description, string icon, CancellationToken cancellationToken, Action<string> callBack)
+    {
+        WWWForm form = new WWWForm();
+        form.AddField("Name", name);
+        form.AddField("Price", price);
+        form.AddField("Blocked", blocked);
+        form.AddField("Description", description);
+        form.AddField("Icon", icon);
+
+        using (UnityWebRequest www = UnityWebRequest.Post(insertMenuOracle, form))
+        {
+            var operation = www.SendWebRequest();
+
+            while (!operation.isDone)
+            {
+                await Task.Yield();
+
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    Debug.Log("Task was cancelled.");
+                    www.Abort();
+                    return;
+                }
+            }
+
+            if (www.result != UnityWebRequest.Result.Success)
+            {
+                Debug.Log(www.error);
+            }
+            else
+            {
+                Debug.Log(www.downloadHandler.text);
+                callBack?.Invoke(www.downloadHandler.text);
+            }
         }
     }
 
@@ -355,6 +535,44 @@ public static class WebActions
         }
     }
 
+    public static async Task UpdateMenuOracleAsync(string id, string name, string price, string blocked, string description, string icon, CancellationToken cancellationToken, Action<string> callBack)
+    {
+        WWWForm form = new WWWForm();
+        form.AddField("Id", id);
+        form.AddField("Name", name);
+        form.AddField("Price", price);
+        form.AddField("Blocked", blocked);
+        form.AddField("Description", description);
+        form.AddField("Icon", icon);
+
+        using (UnityWebRequest www = UnityWebRequest.Post(updateMenuOracle, form))
+        {
+            var operation = www.SendWebRequest();
+
+            while (!operation.isDone)
+            {
+                await Task.Yield();
+
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    Debug.Log("Task was cancelled.");
+                    www.Abort();
+                    return;
+                }
+            }
+
+            if (www.result != UnityWebRequest.Result.Success)
+            {
+                Debug.Log(www.error);
+            }
+            else
+            {
+                Debug.Log(www.downloadHandler.text);
+                callBack?.Invoke(www.downloadHandler.text);
+            }
+        }
+    }
+
     public static IEnumerator DeleteMenuOracle(string id, Action<string> callBack)
     {
         WWWForm form = new WWWForm();
@@ -372,6 +590,39 @@ public static class WebActions
             Debug.Log(www.downloadHandler.text);
 
             callBack?.Invoke(www.downloadHandler.text);
+        }
+    }
+
+    public static async Task DeleteMenuOracleAsync(string id, CancellationToken cancellationToken, Action<string> callBack)
+    {
+        WWWForm form = new WWWForm();
+        form.AddField("Id", id);
+
+        using (UnityWebRequest www = UnityWebRequest.Post(deleteMenuOracle, form))
+        {
+            var operation = www.SendWebRequest();
+
+            while (!operation.isDone)
+            {
+                await Task.Yield();
+
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    Debug.Log("Task was cancelled.");
+                    www.Abort();
+                    return;
+                }
+            }
+
+            if (www.result != UnityWebRequest.Result.Success)
+            {
+                Debug.Log(www.error);
+            }
+            else
+            {
+                Debug.Log(www.downloadHandler.text);
+                callBack?.Invoke(www.downloadHandler.text);
+            }
         }
     }
 
@@ -945,6 +1196,39 @@ public static class WebActions
             else
             {
                 Debug.Log(www.downloadHandler.text);
+                callBack?.Invoke(www.downloadHandler.text);
+            }
+        }
+    }
+
+    public static async Task GetOrdersStatusOracle(string idKlienta,CancellationToken cancellationToken, Action<string> callBack)
+    {
+        WWWForm form = new WWWForm();
+        form.AddField("ID_klienta", idKlienta);
+
+        using (UnityWebRequest www = UnityWebRequest.Post(getOrdersStatusOracle, form))
+        {
+            var operation = www.SendWebRequest();
+
+            while (!operation.isDone)
+            {
+                await Task.Yield();
+
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    Debug.Log("Task was cancelled.");
+                    www.Abort();
+                    return;
+                }
+            }
+
+            if (www.result != UnityWebRequest.Result.Success)
+            {
+                Debug.Log(www.error);
+            }
+            else
+            {
+                //Debug.Log(www.downloadHandler.text);
                 callBack?.Invoke(www.downloadHandler.text);
             }
         }

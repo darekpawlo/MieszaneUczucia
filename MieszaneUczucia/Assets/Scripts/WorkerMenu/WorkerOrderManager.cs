@@ -7,6 +7,7 @@ using System;
 using Newtonsoft.Json;
 using TMPro;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 public class WorkerOrderManager : MonoBehaviour
 {
@@ -42,6 +43,11 @@ public class WorkerOrderManager : MonoBehaviour
     {
         Prompt.Instance.ShowLoadingBar();
         CallWebUpdateStatus();
+    }
+
+    public void Home()
+    {
+        SceneManager.LoadScene("Menu");
     }
 
     async void CallWebGetOrders()
