@@ -163,6 +163,11 @@ public class WorkerOrderManager : MonoBehaviour
                     return;
                 }
 
+                if(statusDropdown.options[statusDropdown.value].text.Contains("anulowane"))
+                {
+                    responseText = "Przekierowanie do zwrotu pieniêdzy klienta";
+                }
+
                 Prompt.Instance.ShowTooltip(responseText, () =>
                 {
                     ShowOrders();
@@ -227,6 +232,7 @@ public class OrderJson
         if (Status.Contains("w_trakcie")) return $"<color=#b3721d>{Status}</color>";
         if (Status.Contains("gotowe_do_odbioru")) return $"<color=#4fdb3d>{Status}</color>";
         if (Status.Contains("zakoncone")) return $"<color=#db3d65>{Status}</color>";
+        if (Status.Contains("anulowane")) return $"<color=#cc7aff>{Status}</color>";
 
         return Status;
     }
@@ -238,6 +244,7 @@ public class OrderJson
         if (Status.Contains("w_trakcie")) return 2;
         if (Status.Contains("gotowe_do_odbioru")) return 3;
         if (Status.Contains("zakoncone")) return 4;
+        if (Status.Contains("anulowane")) return 5;
 
         return 0;
     }

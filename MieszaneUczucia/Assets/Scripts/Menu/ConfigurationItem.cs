@@ -12,6 +12,7 @@ public class ConfigurationItem : MonoBehaviour
     public TMP_Text Amount;
     public Button AddButton;
     public Button RemoveButton;
+    public Transform Blocked;
 
     public ConfigurationItemData data;
     public int amount = 0;
@@ -23,6 +24,8 @@ public class ConfigurationItem : MonoBehaviour
 
         Name.text = data.Produkt;
         Price.text = data.Cena.ToString("F");
+
+        Blocked.gameObject.SetActive(data.Zablokowane == 0 ? false : true);
 
         AddButton.onClick.AddListener(() =>
         {

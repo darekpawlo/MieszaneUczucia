@@ -192,12 +192,6 @@ public struct ConfigurationItemData
 {
     public string Produkt;
     public float Cena { get => cena/100; set => cena = value; }
+    public int Zablokowane;
     float cena;
-
-    public ConfigurationItemData(string produkt, float cena)
-    {
-        Produkt = produkt;
-        this.cena = cena;
-    }
-
 }

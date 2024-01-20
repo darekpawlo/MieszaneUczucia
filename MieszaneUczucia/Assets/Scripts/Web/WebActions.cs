@@ -874,11 +874,12 @@ public static class WebActions
         }
     }
 
-    public static async Task UpdateConfiguration(string IdOpcji, string produkt, string cena, string IdPozycjiDodaj, string IdPozycjiUsun, CancellationToken cancellationToken, Action<string> callBack)
+    public static async Task UpdateConfiguration(string IdOpcji, string zablokowane, string produkt, string cena, string IdPozycjiDodaj, string IdPozycjiUsun, CancellationToken cancellationToken, Action<string> callBack)
     {
         WWWForm form = new WWWForm();
         form.AddField("ID_opcji", IdOpcji);
         form.AddField("Produkt", produkt);
+        form.AddField("Zablokowane", zablokowane);
         form.AddField("Cena", cena);
         form.AddField("ID_pozycji", IdPozycjiDodaj);
         form.AddField("ID_pozycji_do_usuniecia", IdPozycjiUsun);

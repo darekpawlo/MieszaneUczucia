@@ -12,7 +12,7 @@ public class TaskManager
     {
         if (isTaskRunning)
         {
-            Debug.Log("A task is already running.");
+            Debug.Log($"A {taskFunc} is already running.");
             return; // Return early if a task is already running
         }
 

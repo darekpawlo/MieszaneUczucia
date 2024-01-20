@@ -6,6 +6,9 @@ using UnityEngine.UI;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine.SceneManagement;
+using System.Text.RegularExpressions;
+using System;
+using System.Linq;
 
 public class Register : MonoBehaviour
 {
@@ -20,40 +23,6 @@ public class Register : MonoBehaviour
     [SerializeField] bool usingPanels;
 
     TaskManager taskManager = new TaskManager();
-
-    private void Start()
-    {
-        //registerButton.onClick.AddListener(async () =>
-        //{
-        //    if(passInput.text != confirmInput.text)
-        //    {
-        //        Prompt.Instance.ShowTooltip("Passwords don't match");
-        //        return;
-        //    }
-
-        //    if (phoneInput.text.Length > 9 || phoneInput.text.Length < 9)
-        //    {
-        //        Prompt.Instance.ShowTooltip("Not correct phone number");
-        //        return;
-        //    }
-
-        //    if (userInput.text == string.Empty || passInput.text == string.Empty || confirmInput.text == string.Empty || phoneInput.text == string.Empty)
-        //    {
-        //        Prompt.Instance.ShowTooltip("Not all fields are filled");
-        //        return;
-        //    }
-
-        //    if(!taskManager.IsTaskRunning)
-        //    {
-        //        Prompt.Instance.ShowLoadingBar();
-        //        CallWebAction();
-        //    }
-        //    else
-        //    {
-        //        Debug.Log("Registration already in progress");
-        //    }
-        //});
-    }
 
     public void GoToLogin()
     {
@@ -72,6 +41,29 @@ public class Register : MonoBehaviour
         if (phoneInput.text.Length > 9 || phoneInput.text.Length < 9)
         {
             Prompt.Instance.ShowTooltip("Niepoprawny numer telefonu");
+            return;
+        }
+
+        if(passInput.text.Length < 8)
+        {
+            Prompt.Instance.ShowTooltip("Has³o musi mieæ przynajmniej 8 znaków");
+            return;
+        }
+
+        bool IsLetter(char c) => c >= 'A' && c <= 'Z';
+        bool IsDigit(char c) => c >= '0' && c <= '9';
+        bool IsSymbol(char c) => c > 32 && c < 127 && !IsDigit(c) && !IsLetter(c);
+        bool IsValidPassword(string password)
+        {
+            return
+               password.Any(c => IsLetter(c)) &&
+               password.Any(c => IsDigit(c)) &&
+               password.Any(c => IsSymbol(c));
+        }
+
+        if (!IsValidPassword(passInput.text))
+        {
+            Prompt.Instance.ShowTooltip("Has³o musi zawieraæ przynajmniej jeden znak specjalny, cyfrê i du¿¹ litere");
             return;
         }
 

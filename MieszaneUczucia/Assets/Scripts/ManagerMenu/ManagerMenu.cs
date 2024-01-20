@@ -51,6 +51,7 @@ public class ManagerMenu : MonoBehaviour
     [SerializeField] Transform specificConfLayoutGroup;
     [SerializeField] TMP_InputField specificConfNameInput;
     [SerializeField] TMP_InputField specificConfPriceInput;
+    [SerializeField] GameObject specificConfBlocked;
     List<GameObject> spawnedSpecificConfItem = new List<GameObject>();
     ConfigurationItemOnlyJson activeConfiguration;
 
@@ -217,6 +218,10 @@ public class ManagerMenu : MonoBehaviour
     {
         Prompt.Instance.ShowLoadingBar();
         CallWebActionUpdateConfiguration(activeConfiguration.ID_opcji);
+    }
+    public void BlockedToggle(GameObject checkmark)
+    {
+        checkmark.SetActive(!checkmark.activeInHierarchy);
     }
 
     async void CallWebActionGetMenu()
@@ -392,7 +397,7 @@ public class ManagerMenu : MonoBehaviour
                     return; // Early exit if the operation is cancelled
                 }
 
-                if (responseText.Contains("Error"))
+                if (responseText.Contains("error"))
                 {
                     Prompt.Instance.ShowTooltip(responseText);
                 }
@@ -417,10 +422,12 @@ public class ManagerMenu : MonoBehaviour
                             {
                                 Debug.Log(text);
                                 amountOfDoneOperations++;
-                                if (amountOfDoneOperations >= amountOfOperations) Prompt.Instance.ShowTooltip("Dodano konfiguracje!");
+                                if (amountOfDoneOperations >= amountOfOperations) Prompt.Instance.ShowTooltip("Dodano konfiguracje!");                                
                             }
                         }));
                     }
+
+                    if (amountOfDoneOperations == 0) Prompt.Instance.ShowTooltip("Nie ustawiono konfiguracji do ¿adnego dania");
                 }
             }
         });
@@ -522,6 +529,7 @@ public class ManagerMenu : MonoBehaviour
                         confSpecificConfigurationPanel.gameObject.SetActive(true);
                         specificConfNameInput.text = item.Produkt;
                         specificConfPriceInput.text = activeConfiguration.Cena;
+                        specificConfBlocked.transform.GetChild(1).GetChild(0).gameObject.SetActive(activeConfiguration.Zablokowane == 0 ? false : true);
 
                         CallWebActionGetConfigurationMenuItems(activeConfiguration.ID_opcji);
                     });
@@ -670,7 +678,7 @@ public class ManagerMenu : MonoBehaviour
             // Handle cancellation
             using (cancellationToken.Register(() => tcs.TrySetCanceled()))
             {
-                await WebActions.UpdateConfiguration(idOpcji, specificConfNameInput.text, specificConfPriceInput.text, IdPozycjiDodaj, IdPozycjiUsun, cancellationToken, (text) =>
+                await WebActions.UpdateConfiguration(idOpcji, specificConfBlocked.activeInHierarchy ? 1.ToString() : 0.ToString(), specificConfNameInput.text, specificConfPriceInput.text, IdPozycjiDodaj, IdPozycjiUsun, cancellationToken, (text) =>
                 {
                     tcs.SetResult(text);
                 });
@@ -815,6 +823,7 @@ public class ConfigurationItemOnlyJson
     public string ID_opcji { get; set; }
     public string Produkt { get; set; }
     public string Cena { get; set; }
+    public int Zablokowane { get; set; }
 }
 
 

@@ -30,6 +30,7 @@ public class NotificationsPhp : MonoBehaviour
         if (Status.Contains("w_trakcie")) return $"<color=#b3721d>{Status}</color>";
         if (Status.Contains("gotowe_do_odbioru")) return $"<color=#4fdb3d>{Status}</color>";
         if (Status.Contains("zakoncone")) return $"<color=#db3d65>{Status}</color>";
+        if (Status.Contains("anulowane")) return $"<color=#cc7aff>{Status}</color>";
 
         return Status;
     }
@@ -92,7 +93,14 @@ public class NotificationsPhp : MonoBehaviour
                         if(status.ID_zamowienia == activeStatus.ID_zamowienia && status.Status != activeStatus.Status)
                         {
                             Debug.Log($"Status siê zmieni³ z {activeStatus.Status} na {status.Status}");
-                            Prompt.Instance.ShowTooltip($"Status zamówienia {status.ID_zamowienia} zosta³ zmieniony na: {GetColoredStatus(status.Status)}");
+                            if(status.Status == "anulowane")
+                            {
+                                Prompt.Instance.ShowTooltip($"Twoje zamówienie {status.ID_zamowienia} zosta³o: {GetColoredStatus(status.Status)}.\n Zwrot pieniêdzy za zamówienie zostanie nied³ugo wykonany!");
+                            }
+                            else
+                            {
+                                Prompt.Instance.ShowTooltip($"Status zamówienia {status.ID_zamowienia} zosta³ zmieniony na: {GetColoredStatus(status.Status)}");
+                            }                            
                         }
                     }
                 }
